@@ -1,0 +1,71 @@
+/* Print Styles */
+@media print {
+  /* Ocultar elementos innecesarios */
+  nav,
+  footer,
+  button,
+  .MuiFab-root,
+  .no-print {
+    display: none !important;
+  }
+
+  /* Mostrar solo el contenido principal */
+  body {
+    margin: 0;
+    padding: 0;
+    background: white;
+  }
+
+  /* Optimizar para papel */
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  /* Evitar saltos de página dentro de elementos */
+  .MuiPaper-root,
+  .MuiCard-root,
+  table,
+  tr {
+    page-break-inside: avoid;
+  }
+
+  /* Ajustar márgenes */
+  @page {
+    margin: 2cm;
+  }
+
+  /* Enlaces sin color */
+  a {
+    color: #000 !important;
+    text-decoration: none !important;
+  }
+
+  /* Tablas */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  th,
+  td {
+    border: 1px solid #000;
+    padding: 8px;
+  }
+
+  /* Headers */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    page-break-after: avoid;
+    color: #000;
+  }
+
+  /* Resultados destacados */
+  .MuiPaper-root {
+    border: 1px solid #000 !important;
+  }
+}
