@@ -1,30 +1,49 @@
 # Iconos de la Aplicación
 
-Este directorio debe contener los iconos para la PWA (Progressive Web App).
+## ✅ Estado Actual
 
-## Iconos necesarios:
+**Icono incluido:** `icon.svg` - Icono SVG simple con cruz médica y letra "A"
 
-1. **icon-192.png** (192x192 pixels)
-2. **icon-512.png** (512x512 pixels)
+El icono actual es un placeholder funcional que:
+- ✅ Funciona en todos los navegadores modernos
+- ✅ Se escala a cualquier tamaño
+- ✅ Usa los colores de la marca (#2563EB)
+- ⚠️ Es básico y puede mejorarse
 
-## Recomendaciones:
+## 🎨 Mejorar el Icono (Opcional)
 
-- Usar un ícono relacionado con medicina/aféresis
-- Fondo con el color primario de la app (#2563EB)
-- Icono simple y reconocible
-- Formato PNG con transparencia o fondo sólido
+### Opción 1: Convertir el SVG actual a PNG
 
-## Herramientas sugeridas:
+Usa una herramienta online:
+- [CloudConvert](https://cloudconvert.com/svg-to-png)
+- [Convertio](https://convertio.co/svg-png/)
 
+Tamaños necesarios: 192x192 y 512x512
+
+### Opción 2: Diseñar uno nuevo
+
+Herramientas recomendadas:
+- [PWA Builder Image Generator](https://www.pwabuilder.com/imageGenerator)
 - [Favicon Generator](https://realfavicongenerator.net/)
-- [PWA Builder](https://www.pwabuilder.com/imageGenerator)
-- Cualquier editor de imágenes (Photoshop, GIMP, Figma, etc.)
+- Figma, Canva, o cualquier editor gráfico
 
-## Temporal:
+### Opción 3: Usar iconos profesionales
 
-Mientras no tengas iconos personalizados, puedes usar iconos placeholder o iconos médicos genéricos de sitios como:
-- https://www.flaticon.com/
-- https://fontawesome.com/
-- Material Icons
+Sitios con iconos médicos:
+- [Flaticon](https://www.flaticon.com/) (buscar "medical", "blood", "hospital")
+- [Font Awesome](https://fontawesome.com/) (iconos médicos)
+- [Material Icons](https://fonts.google.com/icons)
 
-Asegúrate de que las imágenes tengan el tamaño exacto especificado.
+## 📝 Cómo reemplazar
+
+1. Crea tus nuevos iconos PNG (192x192 y 512x512)
+2. Guárdalos como `icon-192.png` y `icon-512.png` en este directorio
+3. Actualiza `manifest.json` para usar PNG en lugar de SVG
+4. Commit y push:
+   ```bash
+   git add public/icons/ public/manifest.json
+   git commit -m "Update PWA icons"
+   git push
+   ```
+
+El icono SVG actual es perfectamente funcional para producción. Mejóralo cuando tengas tiempo.

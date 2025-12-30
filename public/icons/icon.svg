@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#2563EB"/>
+  <g fill="#FFFFFF">
+    <!-- Cruz médica -->
+    <rect x="216" y="128" width="80" height="256" rx="8"/>
+    <rect x="128" y="216" width="256" height="80" rx="8"/>
+  </g>
+  <!-- Texto A (Aféresis) -->
+  <text x="256" y="420" font-family="Arial, sans-serif" font-size="140" font-weight="bold" fill="#FFFFFF" text-anchor="middle">A</text>
+</svg>

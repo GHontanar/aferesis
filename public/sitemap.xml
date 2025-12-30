@@ -1,25 +1,29 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+  IMPORTANTE: Actualizar todas las URLs con tu dominio de Cloudflare Pages
+  Después del primer deploy, reemplaza https://aferesis.pages.dev con tu URL real
+-->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://[tudominio]/</loc>
+    <loc>https://aferesis.pages.dev/</loc>
     <lastmod>2025-01-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://[tudominio]/terms</loc>
+    <loc>https://aferesis.pages.dev/terms</loc>
     <lastmod>2025-01-01</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://[tudominio]/privacy</loc>
+    <loc>https://aferesis.pages.dev/privacy</loc>
     <lastmod>2025-01-01</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://[tudominio]/legal</loc>
+    <loc>https://aferesis.pages.dev/legal</loc>
     <lastmod>2025-01-01</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.5</priority>

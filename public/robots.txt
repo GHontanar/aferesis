@@ -1,4 +1,5 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://[tudominio]/sitemap.xml
+# Sitemap: Actualizar con tu URL de Cloudflare Pages después del deploy
+# Ejemplo: https://aferesis.pages.dev/sitemap.xml
