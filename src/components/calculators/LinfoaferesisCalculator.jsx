@@ -12,18 +12,23 @@ import {
   MenuItem,
   Tooltip,
   Alert,
-  IconButton
+  IconButton,
+  ToggleButtonGroup,
+  ToggleButton,
+  Slider
 } from '@mui/material';
 import InfoIcon from '@mui/icons-material/Info';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import { useCalculator } from '../../context/CalculatorContext';
-import { calcularVolemiasCD3 } from '../../utils/formulas/cd3Calculations';
-import { validations } from '../../utils/validation';
+import { calcularVolemiasCD3, estimarCD3DesdeLinfocitos } from '../../utils/formulas/cd3Calculations';
+import { validarCamposCD3, validations } from '../../utils/validation';
+import { CD3_ESTIMATION } from '../../utils/constants';
 import ResultDisplay from '../common/ResultDisplay';
 import PrintReport from '../common/PrintReport';
 
 export default function LinfoaferesisCalculator() {
-  const { setResults, results } = useCalculator();
+  const { setResults, getResults } = useCalculator();
+  const results = getResults('linfoaferesis');
 
   const [formData, setFormData] = useState({
     pesoDonante: '',
@@ -32,11 +37,19 @@ export default function LinfoaferesisCalculator() {
     pesoReceptor: '',
     objetivoCD3: '',
     concentracionCD3: '',
-    eficiencia: '0.4'
+    eficiencia: '0.4',
+    modoObjetivo: 'porKg',
+    fuenteCD3: 'directo',
+    linfocitosTotales: '',
+    porcentajeCD3: CD3_ESTIMATION.DEFAULT_PERCENTAGE
   });
 
   const [errores, setErrores] = useState([]);
   const [advertenciaCD3, setAdvertenciaCD3] = useState(false);
+
+  const cd3Estimado = formData.fuenteCD3 === 'estimacion' && formData.linfocitosTotales
+    ? estimarCD3DesdeLinfocitos(parseFloat(formData.linfocitosTotales), formData.porcentajeCD3)
+    : null;
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -45,71 +58,46 @@ export default function LinfoaferesisCalculator() {
       [name]: value
     }));
 
-    // Verificar advertencia de CD3 bajo
     if (name === 'concentracionCD3') {
       const val = parseFloat(value);
       setAdvertenciaCD3(val > 0 && val < validations.cd34.advertencia);
     }
   };
 
-  const validarCamposCD3 = (datos) => {
-    const errores = [];
-
-    if (!datos.pesoDonante || parseFloat(datos.pesoDonante) < validations.peso.min || parseFloat(datos.pesoDonante) > validations.peso.max) {
-      errores.push('Peso del donante: ' + validations.peso.mensaje);
-    }
-
-    if (!datos.alturaDonante || parseFloat(datos.alturaDonante) < validations.altura.min || parseFloat(datos.alturaDonante) > validations.altura.max) {
-      errores.push('Altura del donante: ' + validations.altura.mensaje);
-    }
-
-    if (!datos.sexoDonante) {
-      errores.push('Debe seleccionar el sexo del donante');
-    }
-
-    if (!datos.pesoReceptor || parseFloat(datos.pesoReceptor) < validations.peso.min || parseFloat(datos.pesoReceptor) > validations.peso.max) {
-      errores.push('Peso del receptor: ' + validations.peso.mensaje);
-    }
-
-    if (!datos.objetivoCD3 || parseFloat(datos.objetivoCD3) <= 0) {
-      errores.push('Objetivo de recolección debe ser mayor a 0');
-    }
-
-    if (!datos.concentracionCD3 || parseFloat(datos.concentracionCD3) <= 0) {
-      errores.push('Concentración CD3 debe ser mayor a 0');
-    }
-
-    if (!datos.eficiencia || parseFloat(datos.eficiencia) <= 0 || parseFloat(datos.eficiencia) > 1) {
-      errores.push('Eficiencia debe estar entre 0 y 1');
-    }
-
-    return errores;
-  };
-
   const handleCalcular = () => {
-    // Validar campos
-    const erroresValidacion = validarCamposCD3(formData);
+    const datosParaValidar = {
+      ...formData,
+      concentracionCD3: formData.fuenteCD3 === 'estimacion' ? cd3Estimado : formData.concentracionCD3
+    };
+    const erroresValidacion = validarCamposCD3(datosParaValidar);
 
     if (erroresValidacion.length > 0) {
       setErrores(erroresValidacion);
-      setResults(null);
+      setResults('linfoaferesis', null);
       return;
     }
 
     setErrores([]);
 
-    // Realizar cálculo
+    const concentracionFinal = formData.fuenteCD3 === 'estimacion'
+      ? cd3Estimado
+      : parseFloat(formData.concentracionCD3);
+
     const resultado = calcularVolemiasCD3({
       pesoDonante: parseFloat(formData.pesoDonante),
       alturaDonante: parseFloat(formData.alturaDonante),
       sexoDonante: formData.sexoDonante,
-      pesoReceptor: parseFloat(formData.pesoReceptor),
+      pesoReceptor: formData.modoObjetivo === 'totalProducto' ? undefined : parseFloat(formData.pesoReceptor),
       objetivoCD3: parseFloat(formData.objetivoCD3),
-      concentracionCD3: parseFloat(formData.concentracionCD3),
-      eficiencia: parseFloat(formData.eficiencia)
+      concentracionCD3: concentracionFinal,
+      eficiencia: parseFloat(formData.eficiencia),
+      modoObjetivo: formData.modoObjetivo,
+      fuenteCD3: formData.fuenteCD3,
+      linfocitosTotales: formData.fuenteCD3 === 'estimacion' ? parseFloat(formData.linfocitosTotales) : undefined,
+      porcentajeCD3: formData.porcentajeCD3
     });
 
-    setResults(resultado);
+    setResults('linfoaferesis', resultado);
   };
 
   const handleReset = () => {
@@ -120,11 +108,15 @@ export default function LinfoaferesisCalculator() {
       pesoReceptor: '',
       objetivoCD3: '',
       concentracionCD3: '',
-      eficiencia: '0.4'
+      eficiencia: '0.4',
+      modoObjetivo: 'porKg',
+      fuenteCD3: 'directo',
+      linfocitosTotales: '',
+      porcentajeCD3: CD3_ESTIMATION.DEFAULT_PERCENTAGE
     });
     setErrores([]);
     setAdvertenciaCD3(false);
-    setResults(null);
+    setResults('linfoaferesis', null);
   };
 
   return (
@@ -160,13 +152,41 @@ export default function LinfoaferesisCalculator() {
           </Alert>
         )}
 
-        {advertenciaCD3 && (
+        {advertenciaCD3 && formData.fuenteCD3 === 'directo' && (
           <Alert severity="warning" sx={{ mt: 2, mb: 2 }}>
             Valor de CD3 bajo (&lt;10/μL). Verifique el dato.
           </Alert>
         )}
 
         <Box component="form" sx={{ mt: 3 }}>
+          {/* Modo de objetivo */}
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="subtitle2" gutterBottom fontWeight={600} color="text.secondary">
+              Modo de dosificación
+            </Typography>
+            <ToggleButtonGroup
+              value={formData.modoObjetivo}
+              exclusive
+              onChange={(e, val) => val && setFormData(prev => ({ ...prev, modoObjetivo: val }))}
+              size="small"
+              fullWidth
+            >
+              <ToggleButton value="porKg">
+                Por kg de receptor
+              </ToggleButton>
+              <ToggleButton value="totalProducto">
+                Producto total (CAR-T)
+              </ToggleButton>
+            </ToggleButtonGroup>
+            {formData.modoObjetivo === 'totalProducto' && (
+              <Alert severity="info" sx={{ mt: 1 }} variant="outlined">
+                Modo CAR-T: el objetivo se expresa en millones de CD3 totales del producto.
+                Rangos típicos: 50-200 millones CD3 totales.
+              </Alert>
+            )}
+          </Box>
+
+          {/* Datos del Donante */}
           <Box
             sx={{
               mb: 3,
@@ -235,6 +255,7 @@ export default function LinfoaferesisCalculator() {
             </Grid>
           </Grid>
 
+          {/* Parámetros del Procedimiento */}
           <Box
             sx={{
               mb: 3,
@@ -250,35 +271,41 @@ export default function LinfoaferesisCalculator() {
             </Typography>
           </Box>
           <Grid container spacing={3}>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                name="pesoReceptor"
-                label="Peso del receptor (kg)"
-                type="number"
-                value={formData.pesoReceptor}
-                onChange={handleChange}
-                InputProps={{
-                  endAdornment: (
-                    <Tooltip title="Peso del receptor entre 1 y 200 kg">
-                      <IconButton size="small">
-                        <InfoIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  )
-                }}
-              />
-            </Grid>
+            {formData.modoObjetivo !== 'totalProducto' && (
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  name="pesoReceptor"
+                  label="Peso del receptor (kg)"
+                  type="number"
+                  value={formData.pesoReceptor}
+                  onChange={handleChange}
+                  InputProps={{
+                    endAdornment: (
+                      <Tooltip title="Peso del receptor entre 1 y 200 kg">
+                        <IconButton size="small">
+                          <InfoIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    )
+                  }}
+                />
+              </Grid>
+            )}
 
             <Grid item xs={12} sm={6}>
               <TextField
                 name="objetivoCD3"
-                label="Objetivo (millones CD3/kg receptor)"
+                label={formData.modoObjetivo === 'totalProducto'
+                  ? 'Objetivo total (millones CD3)'
+                  : 'Objetivo (millones CD3/kg receptor)'}
                 type="number"
                 value={formData.objetivoCD3}
                 onChange={handleChange}
                 InputProps={{
                   endAdornment: (
-                    <Tooltip title="Objetivo de recolección en millones de CD3 por kilogramo de receptor">
+                    <Tooltip title={formData.modoObjetivo === 'totalProducto'
+                      ? 'Objetivo total de CD3 en millones (CAR-T: típico 50-200M)'
+                      : 'Objetivo en millones de CD3 por kg de receptor'}>
                       <IconButton size="small">
                         <InfoIcon fontSize="small" />
                       </IconButton>
@@ -288,25 +315,107 @@ export default function LinfoaferesisCalculator() {
               />
             </Grid>
 
-            <Grid item xs={12} sm={6}>
-              <TextField
-                name="concentracionCD3"
-                label="Concentración CD3 pre-aféresis (CD3/μL)"
-                type="number"
-                value={formData.concentracionCD3}
-                onChange={handleChange}
-                error={advertenciaCD3}
-                InputProps={{
-                  endAdornment: (
-                    <Tooltip title="Concentración de CD3 en sangre periférica antes del procedimiento">
-                      <IconButton size="small">
-                        <InfoIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  )
-                }}
-              />
+            {/* Fuente de CD3 */}
+            <Grid item xs={12}>
+              <Typography variant="subtitle2" gutterBottom fontWeight={600} color="text.secondary">
+                Origen del dato de CD3
+              </Typography>
+              <ToggleButtonGroup
+                value={formData.fuenteCD3}
+                exclusive
+                onChange={(e, val) => val && setFormData(prev => ({ ...prev, fuenteCD3: val }))}
+                size="small"
+              >
+                <ToggleButton value="directo">
+                  CD3 directo (citometría)
+                </ToggleButton>
+                <ToggleButton value="estimacion">
+                  Estimar desde linfocitos (hemograma)
+                </ToggleButton>
+              </ToggleButtonGroup>
             </Grid>
+
+            {formData.fuenteCD3 === 'directo' ? (
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  name="concentracionCD3"
+                  label="Concentración CD3 pre-aféresis (CD3/μL)"
+                  type="number"
+                  value={formData.concentracionCD3}
+                  onChange={handleChange}
+                  error={advertenciaCD3}
+                  InputProps={{
+                    endAdornment: (
+                      <Tooltip title="Concentración de CD3 en sangre periférica antes del procedimiento">
+                        <IconButton size="small">
+                          <InfoIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    )
+                  }}
+                />
+              </Grid>
+            ) : (
+              <>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    name="linfocitosTotales"
+                    label="Linfocitos totales (células/μL)"
+                    type="number"
+                    value={formData.linfocitosTotales}
+                    onChange={handleChange}
+                    InputProps={{
+                      endAdornment: (
+                        <Tooltip title="Linfocitos totales del hemograma en células/μL">
+                          <IconButton size="small">
+                            <InfoIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      )
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Box>
+                    <Typography variant="body2" gutterBottom>
+                      Porcentaje CD3 estimado: <strong>{formData.porcentajeCD3}%</strong>
+                    </Typography>
+                    <Slider
+                      value={formData.porcentajeCD3}
+                      min={CD3_ESTIMATION.MIN_PERCENTAGE}
+                      max={CD3_ESTIMATION.MAX_PERCENTAGE}
+                      step={1}
+                      onChange={(e, val) => setFormData(prev => ({ ...prev, porcentajeCD3: val }))}
+                      valueLabelDisplay="auto"
+                      marks={[
+                        { value: CD3_ESTIMATION.MIN_PERCENTAGE, label: `${CD3_ESTIMATION.MIN_PERCENTAGE}%` },
+                        { value: CD3_ESTIMATION.DEFAULT_PERCENTAGE, label: `${CD3_ESTIMATION.DEFAULT_PERCENTAGE}%` },
+                        { value: CD3_ESTIMATION.MAX_PERCENTAGE, label: `${CD3_ESTIMATION.MAX_PERCENTAGE}%` }
+                      ]}
+                    />
+                  </Box>
+                </Grid>
+                {cd3Estimado !== null && (
+                  <Grid item xs={12}>
+                    <Alert severity="info" variant="outlined">
+                      CD3 estimados: <strong>{cd3Estimado.toFixed(1)} /μL</strong>
+                    </Alert>
+                  </Grid>
+                )}
+                {(formData.porcentajeCD3 < CD3_ESTIMATION.WARNING_LOW || formData.porcentajeCD3 > CD3_ESTIMATION.WARNING_HIGH) && (
+                  <Grid item xs={12}>
+                    <Alert severity="warning" variant="outlined">
+                      El porcentaje de CD3 seleccionado ({formData.porcentajeCD3}%) está fuera del rango habitual (50-85%).
+                    </Alert>
+                  </Grid>
+                )}
+                <Grid item xs={12}>
+                  <Alert severity="info">
+                    Estimación basada en hemograma. Se recomienda confirmar con citometría de flujo.
+                  </Alert>
+                </Grid>
+              </>
+            )}
 
             <Grid item xs={12} sm={6}>
               <TextField

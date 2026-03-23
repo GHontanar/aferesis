@@ -5,7 +5,7 @@ const CalculatorContext = createContext();
 export function CalculatorProvider({ children }) {
   const [currentCalculator, setCurrentCalculator] = useState('cd34');
   const [calculatorData, setCalculatorData] = useState({});
-  const [results, setResults] = useState(null);
+  const [results, setResults] = useState({});
 
   const updateData = (calculator, data) => {
     setCalculatorData(prev => ({
@@ -19,7 +19,21 @@ export function CalculatorProvider({ children }) {
       ...prev,
       [calculator]: {}
     }));
-    setResults(null);
+    setResults(prev => ({
+      ...prev,
+      [calculator]: null
+    }));
+  };
+
+  const setCalculatorResults = (calculator, result) => {
+    setResults(prev => ({
+      ...prev,
+      [calculator]: result
+    }));
+  };
+
+  const getResults = (calculator) => {
+    return results[calculator] || null;
   };
 
   const value = {
@@ -29,7 +43,8 @@ export function CalculatorProvider({ children }) {
     updateData,
     clearData,
     results,
-    setResults
+    setResults: setCalculatorResults,
+    getResults
   };
 
   return (

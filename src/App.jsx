@@ -10,43 +10,27 @@ import Footer from './components/layout/Footer';
 import CD34Calculator from './components/calculators/CD34Calculator';
 import LinfoaferesisCalculator from './components/calculators/LinfoaferesisCalculator';
 import CryopreservationCalculator from './components/calculators/CryopreservationCalculator';
+import TPECalculator from './components/calculators/TPECalculator';
+import RCECalculator from './components/calculators/RCECalculator';
+import CitrateCalculator from './components/calculators/CitrateCalculator';
+import DLICalculator from './components/calculators/DLICalculator';
 import DisclaimerModal from './components/common/DisclaimerModal';
 import FeedbackButton from './components/common/FeedbackButton';
-import TermsOfUse from './pages/legal/TermsOfUse';
-import PrivacyPolicy from './pages/legal/PrivacyPolicy';
-import LegalNotice from './pages/legal/LegalNotice';
 import NotFound from './pages/NotFound';
-import { ROUTES } from './utils/constants';
 
-// Configuración de calculadoras disponibles
 const calculators = [
-  {
-    id: 'cd34',
-    label: 'CD34 - Volemias',
-    component: <CD34Calculator />
-  },
-  {
-    id: 'linfoaferesis',
-    label: 'Linfoaféresis',
-    component: <LinfoaferesisCalculator />
-  },
-  {
-    id: 'cryopreservation',
-    label: 'Congelaciones',
-    component: <CryopreservationCalculator />
-  }
-  // Agregar futuras calculadoras aquí:
-  // {
-  //   id: 'recambio',
-  //   label: 'Recambio Plasmático',
-  //   component: <RecambioPlasmaticoCalculator />
-  // }
+  { id: 'cd34', label: 'CD34 - Volemias', component: <CD34Calculator /> },
+  { id: 'linfoaferesis', label: 'Linfoaféresis', component: <LinfoaferesisCalculator /> },
+  { id: 'tpe', label: 'Recambio Plasmático', component: <TPECalculator /> },
+  { id: 'rce', label: 'Eritrocitaféresis', component: <RCECalculator /> },
+  { id: 'citrate', label: 'Citrato', component: <CitrateCalculator /> },
+  { id: 'cryopreservation', label: 'Congelaciones', component: <CryopreservationCalculator /> },
+  { id: 'dli', label: 'DLI', component: <DLICalculator /> },
 ];
 
 function App() {
   const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
 
-  // Verificar si el disclaimer ya fue aceptado en esta sesión
   useEffect(() => {
     const accepted = sessionStorage.getItem('disclaimerAccepted');
     if (accepted === 'true') {
@@ -65,9 +49,8 @@ function App() {
         <CssBaseline />
         <Router>
           <Routes>
-            {/* Rutas principales */}
             <Route
-              path={ROUTES.HOME}
+              path="/"
               element={
                 <>
                   <DisclaimerModal
@@ -82,12 +65,6 @@ function App() {
               }
             />
 
-            {/* Rutas legales */}
-            <Route path={ROUTES.TERMS} element={<TermsOfUse />} />
-            <Route path={ROUTES.PRIVACY} element={<PrivacyPolicy />} />
-            <Route path={ROUTES.LEGAL} element={<LegalNotice />} />
-
-            {/* 404 */}
             <Route path="*" element={<NotFound />} />
           </Routes>
 

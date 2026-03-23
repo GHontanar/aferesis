@@ -23,7 +23,8 @@ import ResultDisplay from '../common/ResultDisplay';
 import PrintReport from '../common/PrintReport';
 
 export default function CD34Calculator() {
-  const { setResults, results } = useCalculator();
+  const { setResults, getResults } = useCalculator();
+  const results = getResults('cd34');
 
   const [formData, setFormData] = useState({
     pesoDonante: '',
@@ -58,7 +59,7 @@ export default function CD34Calculator() {
 
     if (erroresValidacion.length > 0) {
       setErrores(erroresValidacion);
-      setResults(null);
+      setResults('cd34', null);
       return;
     }
 
@@ -75,7 +76,7 @@ export default function CD34Calculator() {
       eficiencia: parseFloat(formData.eficiencia)
     });
 
-    setResults(resultado);
+    setResults('cd34', resultado);
   };
 
   const handleReset = () => {

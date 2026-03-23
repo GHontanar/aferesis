@@ -1,124 +1,146 @@
 import { useState } from 'react';
-import { Box, Tabs, Tab, Container, AppBar, Toolbar, Typography } from '@mui/material';
-import LocalHospitalIcon from '@mui/icons-material/LocalHospital';
+import {
+  Box,
+  Container,
+  AppBar,
+  Toolbar,
+  Typography,
+  Card,
+  CardActionArea,
+  CardContent,
+  Grid,
+  useMediaQuery,
+  useTheme,
+} from '@mui/material';
 import { useCalculator } from '../../context/CalculatorContext';
+import { APP_NAME } from '../../utils/constants';
 
-// Registro de calculadoras - Fácilmente extensible
-const calculatorRegistry = [
-  {
-    id: 'cd34',
-    label: 'CD34 - Volemias',
-    component: null // Se cargará dinámicamente
-  }
-  // Aquí se pueden agregar más calculadoras en el futuro:
-  // {
-  //   id: 'linfoaferesis',
-  //   label: 'Linfoaféresis',
-  //   component: LinfoaferesisCalculator
-  // },
-  // {
-  //   id: 'recambio',
-  //   label: 'Recambio Plasmático',
-  //   component: RecambioPlasmaticoCalculator
-  // }
-];
-
-function TabPanel({ children, value, index }) {
-  return (
-    <div role="tabpanel" hidden={value !== index}>
-      {value === index && <Box sx={{ py: 3 }}>{children}</Box>}
-    </div>
-  );
-}
+const CARD_DESCRIPTIONS = {
+  cd34: 'Volemias para recolección de progenitores hematopoyéticos',
+  linfoaferesis: 'Volemias para recolección de linfocitos CD3',
+  tpe: 'Volumen plasmático, líquido de reposición y eliminación de IgG',
+  rce: 'Volumen de intercambio y unidades de concentrado de hematíes',
+  citrate: 'Tasa de citrato, riesgo de toxicidad y suplementación de calcio',
+  cryopreservation: 'Distribución en contenedores con DMSO/plasma',
+  dli: 'Esquema de escalada de dosis y volúmenes de descongelación',
+};
 
 export default function TabLayout({ calculators }) {
-  const [tabValue, setTabValue] = useState(0);
+  const [selectedCalc, setSelectedCalc] = useState(null);
   const { setCurrentCalculator } = useCalculator();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-  const handleTabChange = (event, newValue) => {
-    setTabValue(newValue);
-    setCurrentCalculator(calculators[newValue].id);
+  const handleSelect = (calc) => {
+    setSelectedCalc(calc);
+    setCurrentCalculator(calc.id);
+  };
+
+  const handleBack = () => {
+    setSelectedCalc(null);
   };
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', display: 'flex', flexDirection: 'column' }}>
       <AppBar
-        position="static"
+        position="sticky"
         elevation={0}
         sx={{
-          background: 'linear-gradient(135deg, #2563EB 0%, #1E40AF 100%)',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
+          bgcolor: 'white',
+          borderBottom: '1px solid',
+          borderColor: 'grey.200',
         }}
       >
-        <Toolbar sx={{ py: 1.5 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <LocalHospitalIcon sx={{ fontSize: 28, color: 'white', opacity: 0.9 }} />
-            <Typography
-              variant="h5"
-              component="div"
-              sx={{
-                fontWeight: 700,
-                color: 'white',
-                letterSpacing: '-0.02em'
-              }}
-            >
-              Aféresis
-            </Typography>
-          </Box>
+        <Toolbar
+          sx={{
+            py: 1,
+            px: isMobile ? 1.5 : 3,
+            minHeight: isMobile ? 48 : 56,
+          }}
+        >
+          <Typography
+            variant="body1"
+            component="h1"
+            onClick={selectedCalc ? handleBack : undefined}
+            sx={{
+              fontWeight: 700,
+              color: 'grey.800',
+              fontSize: isMobile ? 15 : 17,
+              cursor: selectedCalc ? 'pointer' : 'default',
+              '&:hover': selectedCalc ? { color: 'primary.main' } : {},
+            }}
+          >
+            {APP_NAME}
+          </Typography>
         </Toolbar>
       </AppBar>
 
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4, flex: 1 }}>
-        <Box sx={{ mb: 3 }}>
-          <Tabs
-            value={tabValue}
-            onChange={handleTabChange}
-            variant="scrollable"
-            scrollButtons="auto"
-            sx={{
-              '& .MuiTabs-flexContainer': {
-                gap: 1
-              }
-            }}
-          >
-            {calculators.map((calc, index) => (
-              <Tab key={calc.id} label={calc.label} />
-            ))}
-          </Tabs>
-        </Box>
-
-        {calculators.map((calc, index) => (
-          <TabPanel key={calc.id} value={tabValue} index={index}>
-            {calc.component}
-          </TabPanel>
-        ))}
-      </Container>
-
-      <Box
-        component="footer"
+      <Container
+        maxWidth="lg"
         sx={{
-          py: 3,
-          px: 2,
-          mt: 'auto',
-          bgcolor: 'grey.50',
-          borderTop: 2,
-          borderColor: 'grey.200'
+          mt: isMobile ? 2 : 5,
+          mb: isMobile ? 2 : 5,
+          px: isMobile ? 2 : 3,
+          flex: 1,
         }}
       >
-        <Container maxWidth="lg">
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            align="center"
-            sx={{ fontWeight: 500 }}
-          >
-            Sistema de Cálculos para Aféresis - {new Date().getFullYear()}
-          </Typography>
-        </Container>
-      </Box>
+        {selectedCalc ? (
+          <Box>{selectedCalc.component}</Box>
+        ) : (
+          <Grid container spacing={{ xs: 1.5, md: 3 }}>
+            {calculators.map((calc) => (
+              <Grid item xs={6} md={4} key={calc.id}>
+                <Card
+                  variant="outlined"
+                  sx={{
+                    height: '100%',
+                    border: '1px solid',
+                    borderColor: 'grey.200',
+                    boxShadow: 'none',
+                    '&:hover': {
+                      borderColor: 'grey.400',
+                      bgcolor: 'grey.50',
+                    },
+                  }}
+                >
+                  <CardActionArea
+                    onClick={() => handleSelect(calc)}
+                    sx={{
+                      height: '100%',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'flex-start',
+                      justifyContent: 'flex-start',
+                    }}
+                  >
+                    <CardContent sx={{ p: { xs: 2, md: 4 } }}>
+                      <Typography
+                        sx={{
+                          fontWeight: 600,
+                          color: 'grey.800',
+                          mb: { xs: 0.5, md: 1 },
+                          fontSize: { xs: 15, md: 20 },
+                        }}
+                      >
+                        {calc.label}
+                      </Typography>
+                      <Typography
+                        sx={{
+                          color: 'grey.500',
+                          lineHeight: 1.5,
+                          fontSize: { xs: 12, md: 15 },
+                        }}
+                      >
+                        {CARD_DESCRIPTIONS[calc.id]}
+                      </Typography>
+                    </CardContent>
+                  </CardActionArea>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        )}
+      </Container>
     </Box>
   );
 }
-
-// Exportar también el registro para que otros módulos puedan extenderlo
-export { calculatorRegistry };

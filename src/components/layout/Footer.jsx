@@ -1,136 +1,114 @@
-import { Box, Container, Typography, Link as MuiLink, Divider } from '@mui/material';
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
 import {
-  APP_NAME,
-  APP_VERSION,
-  LICENSE,
-  LICENSE_URL,
-  ROUTES,
-} from '../../utils/constants';
+  Box,
+  Container,
+  Typography,
+  Link as MuiLink,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  IconButton,
+  useMediaQuery,
+  useTheme,
+} from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
+import { APP_NAME } from '../../utils/constants';
+import TermsOfUse from '../../pages/legal/TermsOfUse';
+import PrivacyPolicy from '../../pages/legal/PrivacyPolicy';
+import LegalNotice from '../../pages/legal/LegalNotice';
+
+const LEGAL_PAGES = {
+  terms: { title: 'Términos de uso', component: TermsOfUse },
+  privacy: { title: 'Política de privacidad', component: PrivacyPolicy },
+  legal: { title: 'Aviso legal', component: LegalNotice },
+};
 
 export default function Footer() {
-  const currentYear = new Date().getFullYear();
+  const [openDialog, setOpenDialog] = useState(null);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+  const activePage = openDialog ? LEGAL_PAGES[openDialog] : null;
+  const ActiveComponent = activePage?.component;
 
   return (
-    <Box
-      component="footer"
-      sx={{
-        py: 4,
-        px: 2,
-        mt: 'auto',
-        bgcolor: 'grey.50',
-        borderTop: 2,
-        borderColor: 'grey.200',
-      }}
-    >
-      <Container maxWidth="lg">
-        {/* Main footer content */}
-        <Box
-          sx={{
-            display: 'flex',
-            flexDirection: { xs: 'column', md: 'row' },
-            justifyContent: 'space-between',
-            gap: 3,
-            mb: 3,
-          }}
-        >
-          {/* App info */}
-          <Box>
-            <Typography variant="h6" fontWeight={600} gutterBottom>
-              {APP_NAME}
+    <>
+      <Box
+        component="footer"
+        sx={{
+          py: isMobile ? 1.5 : 2,
+          px: isMobile ? 2 : 3,
+          mt: 'auto',
+          borderTop: '1px solid',
+          borderColor: 'grey.200',
+        }}
+      >
+        <Container maxWidth="lg">
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: isMobile ? 'column' : 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: isMobile ? 1 : 0,
+            }}
+          >
+            <Typography variant="caption" sx={{ color: 'grey.400' }}>
+              © 2026 {APP_NAME}. Todos los derechos reservados.
             </Typography>
-            <Typography variant="body2" color="text.secondary" gutterBottom>
-              Versión {APP_VERSION}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Herramienta de cálculo para procedimientos de aféresis
-            </Typography>
-          </Box>
 
-          {/* Legal links */}
-          <Box>
-            <Typography variant="subtitle2" fontWeight={600} gutterBottom>
-              Legal
-            </Typography>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-              <MuiLink
-                component={Link}
-                to={ROUTES.TERMS}
-                color="text.secondary"
-                underline="hover"
-                sx={{ fontSize: '0.875rem' }}
-              >
-                Términos de Uso
-              </MuiLink>
-              <MuiLink
-                component={Link}
-                to={ROUTES.PRIVACY}
-                color="text.secondary"
-                underline="hover"
-                sx={{ fontSize: '0.875rem' }}
-              >
-                Política de Privacidad
-              </MuiLink>
-              <MuiLink
-                component={Link}
-                to={ROUTES.LEGAL}
-                color="text.secondary"
-                underline="hover"
-                sx={{ fontSize: '0.875rem' }}
-              >
-                Aviso Legal
-              </MuiLink>
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              {[
+                { label: 'Términos', key: 'terms' },
+                { label: 'Privacidad', key: 'privacy' },
+                { label: 'Aviso legal', key: 'legal' },
+              ].map(({ label, key }) => (
+                <MuiLink
+                  key={key}
+                  component="button"
+                  variant="caption"
+                  onClick={() => setOpenDialog(key)}
+                  sx={{
+                    color: 'grey.500',
+                    textDecoration: 'none',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    '&:hover': { color: 'grey.700' },
+                  }}
+                >
+                  {label}
+                </MuiLink>
+              ))}
             </Box>
           </Box>
-        </Box>
+        </Container>
+      </Box>
 
-        <Divider sx={{ my: 2 }} />
-
-        {/* Bottom row: Copyright and License */}
-        <Box
-          sx={{
-            display: 'flex',
-            flexDirection: { xs: 'column', sm: 'row' },
-            justifyContent: 'space-between',
-            alignItems: { xs: 'flex-start', sm: 'center' },
-            gap: 2,
-          }}
-        >
-          <Typography variant="body2" color="text.secondary">
-            © {currentYear} {APP_NAME} - Proyecto Personal
-          </Typography>
-
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Typography variant="body2" color="text.secondary">
-              Licencia:
-            </Typography>
-            <MuiLink
-              href={LICENSE_URL}
-              target="_blank"
-              rel="noopener noreferrer license"
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 0.5,
-                color: 'primary.main',
-                textDecoration: 'none',
-                '&:hover': {
-                  textDecoration: 'underline',
-                },
-              }}
-            >
-              <img
-                src="https://mirrors.creativecommons.org/presskit/buttons/88x31/svg/by-nc.svg"
-                alt="CC BY-NC 4.0"
-                style={{ height: '20px' }}
-              />
-              <Typography variant="body2" fontWeight={500}>
-                {LICENSE}
+      {/* Dialog legal */}
+      <Dialog
+        open={openDialog !== null}
+        onClose={() => setOpenDialog(null)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 3 } }}
+      >
+        {activePage && (
+          <>
+            <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
+              <Typography variant="h6" fontWeight={600}>
+                {activePage.title}
               </Typography>
-            </MuiLink>
-          </Box>
-        </Box>
-      </Container>
-    </Box>
+              <IconButton onClick={() => setOpenDialog(null)} size="small">
+                <CloseIcon fontSize="small" />
+              </IconButton>
+            </DialogTitle>
+            <DialogContent dividers sx={{ pt: 2 }}>
+              <ActiveComponent />
+            </DialogContent>
+          </>
+        )}
+      </Dialog>
+    </>
   );
 }

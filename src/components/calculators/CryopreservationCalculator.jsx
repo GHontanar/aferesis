@@ -1,232 +1,259 @@
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Box,
-  TextField,
   Button,
-  Grid,
   Typography,
   Paper,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Slider,
-  Alert,
-  IconButton,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Chip,
-  Divider,
-  FormControlLabel,
-  Switch
+  Stepper,
+  Step,
+  StepLabel,
+  StepContent,
 } from '@mui/material';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
-import AddIcon from '@mui/icons-material/Add';
-import DeleteIcon from '@mui/icons-material/Delete';
+import NavigateNextIcon from '@mui/icons-material/NavigateNext';
+import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
 import { useCalculator } from '../../context/CalculatorContext';
-import { calcularProgramacionCongelacion, calcularVolumenMinimo } from '../../utils/formulas/cryopreservationCalculations';
+import {
+  CONTENEDORES_DEFAULT,
+  CRYO,
+  calcularVolumenMinimo,
+  calcularFactorConcentracion,
+  calcularCriopreservante,
+  calcularConcentracionFinal,
+  calcularAlicuotasMultiples,
+  calcularProgramacionCongelacion,
+} from '../../utils/formulas/cryopreservationCalculations';
+import { validarRango, validations } from '../../utils/validation';
 import ResultDisplay from '../common/ResultDisplay';
 import PrintReport from '../common/PrintReport';
+import CryoStepProducto from './cryo/CryoStepProducto';
+import CryoStepConcentracion from './cryo/CryoStepConcentracion';
+import CryoStepDistribucion from './cryo/CryoStepDistribucion';
 
-const CONTENEDORES_DEFAULT = [
-  { id: 1, nombre: 'Criotubo', volMin: 1, volMax: 1 },
-  { id: 2, nombre: 'Bolsa pequeña', volMin: 15, volMax: 85 },
-  { id: 3, nombre: 'Bolsa grande', volMin: 40, volMax: 160 }
-];
+const STEPS = ['Producto y Paciente', 'Concentración', 'Distribución'];
+
+const INITIAL_FORM_DATA = {
+  tipoProducto: 'CD34',
+  volumenInicial: '',
+  concentracionCelulas: '',
+  concentracionLeucocitos: '',
+  pesoReceptor: '',
+  concentrar: false,
+  concentracionMaxima: String(CRYO.CONCENTRACION_MAXIMA_DEFAULT),
+  volumenConcentrado: '',
+  modoDistribucion: 'automatica',
+};
 
 export default function CryopreservationCalculator() {
-  const { setResults, results } = useCalculator();
+  const { setResults, getResults } = useCalculator();
+  const results = getResults('cryopreservation');
 
-  const [formData, setFormData] = useState({
-    tipoProducto: 'CD34',
-    volumenInicial: '',
-    concentracionCelulas: '',
-    concentracionLeucocitos: '',
-    pesoReceptor: '',
-    concentracionMaxima: '250000',
-    volumenConcentrado: '',
-    usarDosisEspecifica: false,
-    dosisPorKg: ''
-  });
-
+  const [activeStep, setActiveStep] = useState(0);
+  const [formData, setFormData] = useState(INITIAL_FORM_DATA);
   const [tiposContenedores, setTiposContenedores] = useState(CONTENEDORES_DEFAULT);
-  const [volumenMinimo, setVolumenMinimo] = useState(0);
-  const [factorConcentracion, setFactorConcentracion] = useState(1);
-  const [dmsoNecesario, setDmsoNecesario] = useState(0);
-  const [plasmaNecesario, setPlasmaNecesario] = useState(0);
-  const [criotubosMaximos, setCriotubosMaximos] = useState(0);
-  const [celulasPorCriotubo, setCelulasPorCriotubo] = useState(0);
+  const [nuevoContenedor, setNuevoContenedor] = useState({ nombre: '', volMin: '', volMax: '' });
+  const [tiposAlicuotas, setTiposAlicuotas] = useState([]);
+  const [nuevaAlicuota, setNuevaAlicuota] = useState({ cantidad: '', dosisPorKg: '' });
   const [errores, setErrores] = useState([]);
-  const [nuevoContenedor, setNuevoContenedor] = useState({
-    nombre: '',
-    volMin: '',
-    volMax: ''
-  });
 
-  // Calcular volumen mínimo cuando cambian los valores relevantes
-  useEffect(() => {
-    if (formData.volumenInicial && formData.concentracionLeucocitos && formData.concentracionMaxima) {
-      const volMin = calcularVolumenMinimo(
-        parseFloat(formData.volumenInicial),
-        parseFloat(formData.concentracionLeucocitos),
-        parseFloat(formData.concentracionMaxima)
-      );
-      setVolumenMinimo(volMin);
+  // --- Valores derivados ---
 
-      // Actualizar volumen concentrado si está vacío o es menor al mínimo
-      if (!formData.volumenConcentrado || parseFloat(formData.volumenConcentrado) < volMin) {
-        setFormData(prev => ({
-          ...prev,
-          volumenConcentrado: volMin.toFixed(2)
-        }));
-      }
+  const volumenMinimo = useMemo(() => {
+    const vol = parseFloat(formData.volumenInicial);
+    const leucos = parseFloat(formData.concentracionLeucocitos);
+    const maxConc = parseFloat(formData.concentracionMaxima);
+    if (vol > 0 && leucos > 0 && maxConc > 0) {
+      return calcularVolumenMinimo(vol, leucos, maxConc);
     }
+    return 0;
   }, [formData.volumenInicial, formData.concentracionLeucocitos, formData.concentracionMaxima]);
 
-  // Calcular factor de concentración y criopreservante en tiempo real
-  useEffect(() => {
-    if (formData.volumenInicial && formData.volumenConcentrado) {
-      const factor = parseFloat(formData.volumenInicial) / parseFloat(formData.volumenConcentrado);
-      setFactorConcentracion(factor);
+  const volEfectivo = useMemo(() => {
+    if (!formData.concentrar) return parseFloat(formData.volumenInicial) || 0;
+    return parseFloat(formData.volumenConcentrado) || 0;
+  }, [formData.concentrar, formData.volumenInicial, formData.volumenConcentrado]);
 
-      const dmso = parseFloat(formData.volumenConcentrado) * 0.2;
-      const plasma = parseFloat(formData.volumenConcentrado) * 0.8;
-      setDmsoNecesario(dmso);
-      setPlasmaNecesario(plasma);
+  const factorConcentracion = useMemo(() => {
+    const vol = parseFloat(formData.volumenInicial);
+    if (vol > 0 && volEfectivo > 0) {
+      return calcularFactorConcentracion(vol, volEfectivo);
     }
-  }, [formData.volumenInicial, formData.volumenConcentrado]);
+    return 1;
+  }, [formData.volumenInicial, volEfectivo]);
 
-  // Calcular criotubos máximos con dosis específica
-  useEffect(() => {
-    if (formData.usarDosisEspecifica && formData.dosisPorKg && formData.pesoReceptor &&
-        formData.concentracionCelulas && formData.volumenInicial && formData.volumenConcentrado) {
-
-      // Calcular concentración final después de criopreservación
-      const volumenTotal = parseFloat(formData.volumenConcentrado) + dmsoNecesario + plasmaNecesario;
-      const celulasTotal = parseFloat(formData.concentracionCelulas) * parseFloat(formData.volumenInicial);
-      const concentracionFinal = celulasTotal / volumenTotal; // células/μL
-
-      // Células por criotubo = dosis (millones/kg) × peso (kg)
-      const celulas = parseFloat(formData.dosisPorKg) * parseFloat(formData.pesoReceptor); // millones
-      setCelulasPorCriotubo(celulas);
-
-      // Volumen por criotubo = células_requeridas / concentración_final
-      // convertir: millones / (células/μL) = millones / (células/μL) × (1000 μL/ml) × (1/1000000)
-      const volumenPorCriotubo = (celulas * 1000000) / (concentracionFinal * 1000); // ml
-
-      // Volumen disponible = volumen total - 4ml controles
-      const volumenDisponible = volumenTotal - 4;
-
-      // Número máximo de criotubos
-      const maxCriotubos = Math.floor(volumenDisponible / volumenPorCriotubo);
-      setCriotubosMaximos(maxCriotubos >= 0 ? maxCriotubos : 0);
-    } else {
-      setCriotubosMaximos(0);
-      setCelulasPorCriotubo(0);
+  const criopreservante = useMemo(() => {
+    if (volEfectivo > 0) {
+      return calcularCriopreservante(volEfectivo);
     }
-  }, [formData.usarDosisEspecifica, formData.dosisPorKg, formData.pesoReceptor,
-      formData.concentracionCelulas, formData.volumenInicial, formData.volumenConcentrado,
-      dmsoNecesario, plasmaNecesario]);
+    return { dmso: 0, plasma: 0, volumenTotal: 0, concentracionDMSO: CRYO.DMSO_FINAL_PCT };
+  }, [volEfectivo]);
+
+  const concentracionFinal = useMemo(() => {
+    const vol = parseFloat(formData.volumenInicial);
+    const conc = parseFloat(formData.concentracionCelulas);
+    if (vol > 0 && conc > 0 && criopreservante.volumenTotal > 0) {
+      return calcularConcentracionFinal(conc, vol, criopreservante.volumenTotal);
+    }
+    return 0;
+  }, [formData.volumenInicial, formData.concentracionCelulas, criopreservante.volumenTotal]);
+
+  const alicuotasInfo = useMemo(() => {
+    const peso = parseFloat(formData.pesoReceptor);
+    if (tiposAlicuotas.length > 0 && peso > 0 && concentracionFinal > 0 && criopreservante.volumenTotal > 0) {
+      return calcularAlicuotasMultiples(tiposAlicuotas, peso, concentracionFinal, criopreservante.volumenTotal);
+    }
+    return null;
+  }, [tiposAlicuotas, formData.pesoReceptor, concentracionFinal, criopreservante.volumenTotal]);
+
+  // --- Handlers ---
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleToggleConcentrar = (e) => {
+    const concentrar = e.target.checked;
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      concentrar,
+      volumenConcentrado: concentrar ? (prev.volumenConcentrado || '') : '',
     }));
   };
 
-  const handleSliderChange = (event, newValue) => {
-    setFormData(prev => ({
-      ...prev,
-      volumenConcentrado: newValue.toString()
-    }));
+  const handleSliderChange = (_event, newValue) => {
+    setFormData(prev => ({ ...prev, volumenConcentrado: newValue.toString() }));
   };
 
   const handleAgregarContenedor = () => {
-    if (!nuevoContenedor.nombre || !nuevoContenedor.volMin || !nuevoContenedor.volMax) {
-      return;
-    }
-
+    if (!nuevoContenedor.nombre || !nuevoContenedor.volMin || !nuevoContenedor.volMax) return;
     if (parseFloat(nuevoContenedor.volMin) > parseFloat(nuevoContenedor.volMax)) {
-      alert('El volumen mínimo no puede ser mayor que el máximo');
       return;
     }
-
     const id = Math.max(...tiposContenedores.map(c => c.id), 0) + 1;
-    setTiposContenedores([
-      ...tiposContenedores,
+    setTiposContenedores(prev => [
+      ...prev,
       {
         id,
         nombre: nuevoContenedor.nombre,
         volMin: parseFloat(nuevoContenedor.volMin),
-        volMax: parseFloat(nuevoContenedor.volMax)
-      }
+        volMax: parseFloat(nuevoContenedor.volMax),
+        esCriotubo: false,
+      },
     ]);
-
     setNuevoContenedor({ nombre: '', volMin: '', volMax: '' });
   };
 
   const handleEliminarContenedor = (id) => {
-    setTiposContenedores(tiposContenedores.filter(c => c.id !== id));
+    setTiposContenedores(prev => prev.filter(c => c.id !== id));
   };
 
-  const validarCampos = () => {
-    const errores = [];
+  const handleAgregarAlicuota = () => {
+    const cantidad = parseInt(nuevaAlicuota.cantidad);
+    const dosis = parseFloat(nuevaAlicuota.dosisPorKg);
+    if (!cantidad || cantidad <= 0 || !dosis || dosis <= 0) return;
+    const id = tiposAlicuotas.length > 0
+      ? Math.max(...tiposAlicuotas.map(a => a.id)) + 1
+      : 1;
+    setTiposAlicuotas(prev => [...prev, { id, cantidad, dosisPorKg: dosis }]);
+    setNuevaAlicuota({ cantidad: '', dosisPorKg: '' });
+  };
 
-    if (tiposContenedores.length === 0) {
-      errores.push('Agregue al menos un tipo de contenedor');
-    }
+  const handleEliminarAlicuota = (id) => {
+    setTiposAlicuotas(prev => prev.filter(a => a.id !== id));
+  };
 
+  // --- Validación por paso ---
+
+  const validarPaso1 = () => {
+    const errs = [];
     if (!formData.volumenInicial || parseFloat(formData.volumenInicial) <= 0) {
-      errores.push('Volumen inicial debe ser mayor a 0');
+      errs.push('Volumen inicial debe ser mayor a 0');
     }
-
     if (!formData.concentracionCelulas || parseFloat(formData.concentracionCelulas) <= 0) {
-      errores.push(`Concentración de ${formData.tipoProducto} debe ser mayor a 0`);
+      errs.push(`Concentración de ${formData.tipoProducto} debe ser mayor a 0`);
     }
-
     if (!formData.concentracionLeucocitos || parseFloat(formData.concentracionLeucocitos) <= 0) {
-      errores.push('Concentración de leucocitos debe ser mayor a 0');
+      errs.push('Concentración de leucocitos debe ser mayor a 0');
     }
-
-    if (!formData.pesoReceptor || parseFloat(formData.pesoReceptor) <= 0) {
-      errores.push('Peso del receptor debe ser mayor a 0');
+    if (!formData.pesoReceptor || !validarRango(formData.pesoReceptor, validations.peso.min, validations.peso.max)) {
+      errs.push('Peso del receptor: ' + validations.peso.mensaje);
     }
+    return errs;
+  };
 
-    if (!formData.concentracionMaxima || parseFloat(formData.concentracionMaxima) <= 0) {
-      errores.push('Concentración máxima debe ser mayor a 0');
-    }
-
-    if (!formData.volumenConcentrado || parseFloat(formData.volumenConcentrado) < volumenMinimo) {
-      errores.push(`Volumen concentrado debe ser al menos ${volumenMinimo.toFixed(2)} ml`);
-    }
-
-    if (formData.usarDosisEspecifica) {
-      if (!formData.dosisPorKg || parseFloat(formData.dosisPorKg) <= 0) {
-        errores.push('Dosis por kg debe ser mayor a 0');
+  const validarPaso2 = () => {
+    const errs = [];
+    if (formData.concentrar) {
+      if (!formData.concentracionMaxima || parseFloat(formData.concentracionMaxima) <= 0) {
+        errs.push('Concentración máxima debe ser mayor a 0');
       }
-      if (criotubosMaximos === 0) {
-        errores.push('No hay suficiente volumen para crear ni un criotubo con la dosis especificada');
+      const volConc = parseFloat(formData.volumenConcentrado);
+      if (!volConc || volConc < volumenMinimo) {
+        errs.push(`Volumen concentrado debe ser al menos ${volumenMinimo.toFixed(2)} ml`);
       }
     }
+    return errs;
+  };
 
-    return errores;
+  const validarPaso3 = () => {
+    const errs = [];
+    if (tiposContenedores.length === 0) {
+      errs.push('Agregue al menos un tipo de contenedor');
+    }
+    if (formData.modoDistribucion === 'alicuotas') {
+      if (tiposAlicuotas.length === 0) {
+        errs.push('Agregue al menos un tipo de alícuota');
+      }
+      if (alicuotasInfo && !alicuotasInfo.cabe) {
+        errs.push('Las alícuotas exceden el volumen disponible');
+      }
+    }
+    return errs;
+  };
+
+  // --- Navegación ---
+
+  const handleNext = () => {
+    const validadores = [validarPaso1, validarPaso2];
+    const errs = validadores[activeStep]();
+    if (errs.length > 0) {
+      setErrores(errs);
+      return;
+    }
+    setErrores([]);
+
+    // Al pasar del paso 1 al 2, inicializar volumen concentrado si concentrar está activo
+    if (activeStep === 0 && formData.concentrar && !formData.volumenConcentrado) {
+      setFormData(prev => ({
+        ...prev,
+        volumenConcentrado: volumenMinimo > 0 ? volumenMinimo.toFixed(2) : prev.volumenInicial,
+      }));
+    }
+
+    setActiveStep(prev => prev + 1);
+  };
+
+  const handleBack = () => {
+    setErrores([]);
+    setActiveStep(prev => prev - 1);
+  };
+
+  const handleStepClick = (step) => {
+    // Solo permitir ir a pasos completados o al actual
+    if (step < activeStep) {
+      setErrores([]);
+      setActiveStep(step);
+    }
   };
 
   const handleCalcular = () => {
-    const erroresValidacion = validarCampos();
-
-    if (erroresValidacion.length > 0) {
-      setErrores(erroresValidacion);
-      setResults(null);
+    const errs = validarPaso3();
+    if (errs.length > 0) {
+      setErrores(errs);
+      setResults('cryopreservation', null);
       return;
     }
-
     setErrores([]);
 
     const resultado = calcularProgramacionCongelacion({
@@ -235,59 +262,45 @@ export default function CryopreservationCalculator() {
       concentracionCelulas: parseFloat(formData.concentracionCelulas),
       concentracionLeucocitos: parseFloat(formData.concentracionLeucocitos),
       pesoReceptor: parseFloat(formData.pesoReceptor),
+      concentrar: formData.concentrar,
       concentracionMaxima: parseFloat(formData.concentracionMaxima),
       volumenConcentrado: parseFloat(formData.volumenConcentrado),
-      usarDosisEspecifica: formData.usarDosisEspecifica,
-      dosisPorKg: formData.usarDosisEspecifica ? parseFloat(formData.dosisPorKg) : 0,
-      criotubosMaximos: formData.usarDosisEspecifica ? criotubosMaximos : 0,
-      tiposContenedores: tiposContenedores
+      modoDistribucion: formData.modoDistribucion,
+      tiposAlicuotas: formData.modoDistribucion === 'alicuotas' ? tiposAlicuotas : [],
+      tiposContenedores,
     });
 
     if (resultado.error) {
       setErrores([resultado.error]);
-      setResults(null);
+      setResults('cryopreservation', null);
     } else {
-      setResults(resultado);
+      setResults('cryopreservation', resultado);
     }
   };
 
   const handleReset = () => {
-    setFormData({
-      tipoProducto: 'CD34',
-      volumenInicial: '',
-      concentracionCelulas: '',
-      concentracionLeucocitos: '',
-      pesoReceptor: '',
-      concentracionMaxima: '250000',
-      volumenConcentrado: '',
-      usarDosisEspecifica: false,
-      dosisPorKg: ''
-    });
+    setFormData(INITIAL_FORM_DATA);
     setTiposContenedores(CONTENEDORES_DEFAULT);
-    setVolumenMinimo(0);
-    setFactorConcentracion(1);
-    setDmsoNecesario(0);
-    setPlasmaNecesario(0);
-    setCriotubosMaximos(0);
-    setCelulasPorCriotubo(0);
+    setNuevoContenedor({ nombre: '', volMin: '', volMax: '' });
+    setTiposAlicuotas([]);
+    setNuevaAlicuota({ cantidad: '', dosisPorKg: '' });
     setErrores([]);
-    setResults(null);
+    setActiveStep(0);
+    setResults('cryopreservation', null);
   };
+
+  // --- Render ---
 
   return (
     <Box>
       <Paper
         elevation={2}
         sx={{
-          p: 4,
-          mb: 3,
+          p: 4, mb: 3,
           background: 'linear-gradient(to bottom, #FFFFFF 0%, #F9FAFB 100%)',
-          border: '1px solid',
-          borderColor: 'grey.200',
+          border: '1px solid', borderColor: 'grey.200',
           transition: 'all 0.3s ease',
-          '&:hover': {
-            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
-          }
+          '&:hover': { boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)' },
         }}
       >
         <Box sx={{ mb: 3 }}>
@@ -299,320 +312,123 @@ export default function CryopreservationCalculator() {
           </Typography>
         </Box>
 
-        {errores.length > 0 && (
-          <Alert severity="error" sx={{ mt: 2, mb: 2 }}>
-            {errores.map((error, idx) => (
-              <div key={idx}>{error}</div>
-            ))}
-          </Alert>
-        )}
-
-        <Box component="form" sx={{ mt: 3 }}>
-          {/* Tipo de producto */}
-          <Box
-            sx={{
-              mb: 3,
-              pb: 1,
-              borderBottom: 2,
-              borderColor: 'primary.main',
-              display: 'inline-block'
-            }}
-          >
-            <Typography variant="h6" fontWeight={600} color="primary.dark">
-              Tipo de Producto
-            </Typography>
-          </Box>
-          <Grid container spacing={3}>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Tipo de producto</InputLabel>
-                <Select
-                  name="tipoProducto"
-                  value={formData.tipoProducto}
-                  onChange={handleChange}
-                  label="Tipo de producto"
+        <Stepper activeStep={activeStep} orientation="vertical">
+          {/* Paso 1: Producto y Paciente */}
+          <Step>
+            <StepLabel
+              onClick={() => handleStepClick(0)}
+              sx={{ cursor: activeStep > 0 ? 'pointer' : 'default' }}
+            >
+              {STEPS[0]}
+            </StepLabel>
+            <StepContent>
+              <CryoStepProducto formData={formData} onChange={handleChange} />
+              {errores.length > 0 && activeStep === 0 && (
+                <Box sx={{ mt: 2, color: 'error.main' }}>
+                  {errores.map((e, i) => <Typography key={i} variant="body2">{e}</Typography>)}
+                </Box>
+              )}
+              <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
+                <Button
+                  variant="contained"
+                  endIcon={<NavigateNextIcon />}
+                  onClick={handleNext}
                 >
-                  <MenuItem value="CD34">CD34</MenuItem>
-                  <MenuItem value="CD3">CD3</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-          </Grid>
-
-          {/* Parámetros iniciales */}
-          <Box
-            sx={{
-              mb: 3,
-              mt: 4,
-              pb: 1,
-              borderBottom: 2,
-              borderColor: 'primary.main',
-              display: 'inline-block'
-            }}
-          >
-            <Typography variant="h6" fontWeight={600} color="primary.dark">
-              Parámetros Iniciales
-            </Typography>
-          </Box>
-          <Grid container spacing={3}>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                name="volumenInicial"
-                label="Volumen inicial de aféresis (ml)"
-                type="number"
-                value={formData.volumenInicial}
-                onChange={handleChange}
-              />
-            </Grid>
-
-            <Grid item xs={12} sm={6}>
-              <TextField
-                name="concentracionCelulas"
-                label={`Concentración de ${formData.tipoProducto} (células/μL)`}
-                type="number"
-                value={formData.concentracionCelulas}
-                onChange={handleChange}
-              />
-            </Grid>
-
-            <Grid item xs={12} sm={6}>
-              <TextField
-                name="concentracionLeucocitos"
-                label="Concentración de leucocitos (células/mm³)"
-                type="number"
-                value={formData.concentracionLeucocitos}
-                onChange={handleChange}
-              />
-            </Grid>
-
-            <Grid item xs={12} sm={6}>
-              <TextField
-                name="pesoReceptor"
-                label="Peso del receptor (kg)"
-                type="number"
-                value={formData.pesoReceptor}
-                onChange={handleChange}
-              />
-            </Grid>
-
-            <Grid item xs={12} sm={6}>
-              <TextField
-                name="concentracionMaxima"
-                label="Concentración máxima permitida (células/mm³)"
-                type="number"
-                value={formData.concentracionMaxima}
-                onChange={handleChange}
-              />
-            </Grid>
-
-          </Grid>
-
-          {/* Sección de criotubos con dosis específica */}
-          <Box sx={{ mt: 3 }}>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={formData.usarDosisEspecifica}
-                  onChange={(e) => setFormData(prev => ({
-                    ...prev,
-                    usarDosisEspecifica: e.target.checked
-                  }))}
-                  color="primary"
-                />
-              }
-              label="Crear criotubos con dosis específica"
-            />
-
-            {formData.usarDosisEspecifica && (
-              <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
-                <Grid container spacing={2}>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      name="dosisPorKg"
-                      label={`${formData.tipoProducto} por kg del receptor por criotubo (×10⁶/kg)`}
-                      type="number"
-                      value={formData.dosisPorKg}
-                      onChange={handleChange}
-                      fullWidth
-                      size="small"
-                    />
-                  </Grid>
-                </Grid>
-
-                {formData.dosisPorKg && criotubosMaximos > 0 && (
-                  <Alert severity="info" sx={{ mt: 2 }}>
-                    Se pueden crear <strong>{criotubosMaximos} criotubos</strong> con{' '}
-                    <strong>{celulasPorCriotubo.toFixed(2)} ×10⁶ células</strong> cada uno
-                    (<strong>{formData.dosisPorKg} ×10⁶ células/kg</strong>)
-                  </Alert>
-                )}
-
-                {formData.dosisPorKg && criotubosMaximos === 0 && (
-                  <Alert severity="warning" sx={{ mt: 2 }}>
-                    No hay suficiente volumen para crear ni un criotubo con la dosis especificada
-                  </Alert>
-                )}
+                  Siguiente
+                </Button>
               </Box>
-            )}
-          </Box>
+            </StepContent>
+          </Step>
 
-          {/* Slider de concentración */}
-          {volumenMinimo > 0 && formData.volumenInicial && (
-            <Box sx={{ mt: 4 }}>
-              <Box
-                sx={{
-                  mb: 3,
-                  pb: 1,
-                  borderBottom: 2,
-                  borderColor: 'primary.main',
-                  display: 'inline-block'
-                }}
-              >
-                <Typography variant="h6" fontWeight={600} color="primary.dark">
-                  Volumen de Concentración
-                </Typography>
-              </Box>
-              <Box sx={{ px: 2 }}>
-                <Typography variant="body2" gutterBottom>
-                  Volumen mínimo: {volumenMinimo.toFixed(2)} ml |
-                  Volumen actual: {formData.volumenConcentrado} ml |
-                  Factor de concentración: {factorConcentracion.toFixed(2)}x
-                </Typography>
-                <Slider
-                  value={parseFloat(formData.volumenConcentrado) || volumenMinimo}
-                  min={volumenMinimo}
-                  max={parseFloat(formData.volumenInicial)}
-                  step={0.1}
-                  onChange={handleSliderChange}
-                  valueLabelDisplay="auto"
-                  marks={[
-                    { value: volumenMinimo, label: `Min: ${volumenMinimo.toFixed(0)}ml` },
-                    { value: parseFloat(formData.volumenInicial), label: `Max: ${formData.volumenInicial}ml` }
-                  ]}
-                />
-              </Box>
-
-              {/* Mostrar DMSO y Plasma necesarios */}
-              <Alert severity="info" sx={{ mt: 2 }}>
-                <Typography variant="body2">
-                  <strong>Solución criopreservante:</strong><br/>
-                  DMSO necesario (20%): {dmsoNecesario.toFixed(2)} ml<br/>
-                  Plasma necesario (80%): {plasmaNecesario.toFixed(2)} ml<br/>
-                  Volumen total final: {(parseFloat(formData.volumenConcentrado) + dmsoNecesario + plasmaNecesario).toFixed(2)} ml
-                </Typography>
-              </Alert>
-            </Box>
-          )}
-
-          {/* Gestión de contenedores */}
-          <Box
-            sx={{
-              mb: 3,
-              mt: 4,
-              pb: 1,
-              borderBottom: 2,
-              borderColor: 'primary.main',
-              display: 'inline-block'
-            }}
-          >
-            <Typography variant="h6" fontWeight={600} color="primary.dark">
-              Tipos de Contenedores
-            </Typography>
-          </Box>
-          {tiposContenedores.length === 0 && (
-            <Alert severity="warning" sx={{ mb: 2 }}>
-              Agregue al menos un tipo de contenedor
-            </Alert>
-          )}
-          <Box sx={{ mb: 2 }}>
-            {tiposContenedores.map((contenedor) => (
-              <Chip
-                key={contenedor.id}
-                label={`${contenedor.nombre} (${contenedor.volMin}-${contenedor.volMax}ml)`}
-                onDelete={() => handleEliminarContenedor(contenedor.id)}
-                sx={{ m: 0.5 }}
-              />
-            ))}
-          </Box>
-
-          <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} sm={4}>
-              <TextField
-                size="small"
-                label="Nombre"
-                value={nuevoContenedor.nombre}
-                onChange={(e) => setNuevoContenedor({ ...nuevoContenedor, nombre: e.target.value })}
-              />
-            </Grid>
-            <Grid item xs={12} sm={3}>
-              <TextField
-                size="small"
-                label="Vol. mínimo (ml)"
-                type="number"
-                value={nuevoContenedor.volMin}
-                onChange={(e) => setNuevoContenedor({ ...nuevoContenedor, volMin: e.target.value })}
-              />
-            </Grid>
-            <Grid item xs={12} sm={3}>
-              <TextField
-                size="small"
-                label="Vol. máximo (ml)"
-                type="number"
-                value={nuevoContenedor.volMax}
-                onChange={(e) => setNuevoContenedor({ ...nuevoContenedor, volMax: e.target.value })}
-              />
-            </Grid>
-            <Grid item xs={12} sm={2}>
-              <Button
-                variant="outlined"
-                startIcon={<AddIcon />}
-                onClick={handleAgregarContenedor}
-                fullWidth
-              >
-                Agregar
-              </Button>
-            </Grid>
-          </Grid>
-
-          <Box
-            sx={{
-              mt: 4,
-              pt: 3,
-              display: 'flex',
-              gap: 2,
-              borderTop: '1px solid',
-              borderColor: 'grey.200'
-            }}
-          >
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={handleCalcular}
-              size="large"
-              sx={{
-                px: 4,
-                py: 1.5,
-                fontSize: '1rem',
-                fontWeight: 600
-              }}
+          {/* Paso 2: Concentración */}
+          <Step>
+            <StepLabel
+              onClick={() => handleStepClick(1)}
+              sx={{ cursor: activeStep > 1 ? 'pointer' : 'default' }}
             >
-              Calcular Distribución
-            </Button>
-            <Button
-              variant="outlined"
-              color="primary"
-              startIcon={<RestartAltIcon />}
-              onClick={handleReset}
-              size="large"
-              sx={{
-                px: 3,
-                py: 1.5,
-                fontSize: '1rem'
-              }}
+              {STEPS[1]}
+            </StepLabel>
+            <StepContent>
+              <CryoStepConcentracion
+                formData={formData}
+                onChange={handleChange}
+                volumenMinimo={volumenMinimo}
+                factorConcentracion={factorConcentracion}
+                criopreservante={criopreservante}
+                onToggleConcentrar={handleToggleConcentrar}
+                onSliderChange={handleSliderChange}
+              />
+              {errores.length > 0 && activeStep === 1 && (
+                <Box sx={{ mt: 2, color: 'error.main' }}>
+                  {errores.map((e, i) => <Typography key={i} variant="body2">{e}</Typography>)}
+                </Box>
+              )}
+              <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
+                <Button
+                  startIcon={<NavigateBeforeIcon />}
+                  onClick={handleBack}
+                >
+                  Atrás
+                </Button>
+                <Button
+                  variant="contained"
+                  endIcon={<NavigateNextIcon />}
+                  onClick={handleNext}
+                >
+                  Siguiente
+                </Button>
+              </Box>
+            </StepContent>
+          </Step>
+
+          {/* Paso 3: Distribución */}
+          <Step>
+            <StepLabel
+              onClick={() => handleStepClick(2)}
+              sx={{ cursor: activeStep > 2 ? 'pointer' : 'default' }}
             >
-              Limpiar
-            </Button>
-          </Box>
+              {STEPS[2]}
+            </StepLabel>
+            <StepContent>
+              <CryoStepDistribucion
+                formData={formData}
+                onChange={handleChange}
+                tiposContenedores={tiposContenedores}
+                nuevoContenedor={nuevoContenedor}
+                onChangeNuevo={setNuevoContenedor}
+                onAgregarContenedor={handleAgregarContenedor}
+                onEliminarContenedor={handleEliminarContenedor}
+                tiposAlicuotas={tiposAlicuotas}
+                nuevaAlicuota={nuevaAlicuota}
+                onChangeNuevaAlicuota={setNuevaAlicuota}
+                onAgregarAlicuota={handleAgregarAlicuota}
+                onEliminarAlicuota={handleEliminarAlicuota}
+                alicuotasInfo={alicuotasInfo}
+                onCalcular={handleCalcular}
+                errores={errores.length > 0 && activeStep === 2 ? errores : []}
+              />
+              <Box sx={{ mt: 2 }}>
+                <Button
+                  startIcon={<NavigateBeforeIcon />}
+                  onClick={handleBack}
+                >
+                  Atrás
+                </Button>
+              </Box>
+            </StepContent>
+          </Step>
+        </Stepper>
+
+        {/* Botón reset global */}
+        <Box sx={{ mt: 3, pt: 2, borderTop: '1px solid', borderColor: 'grey.200' }}>
+          <Button
+            variant="outlined"
+            color="primary"
+            startIcon={<RestartAltIcon />}
+            onClick={handleReset}
+          >
+            Reiniciar todo
+          </Button>
         </Box>
       </Paper>
 
@@ -624,10 +440,10 @@ export default function CryopreservationCalculator() {
           Referencias
         </Typography>
         <Typography variant="caption" color="text.secondary">
-          Lecchi L, Giovanelli S, Gagliardi B, Pezzali I, Ratti I, Marconi M. An update on methods for cryopreservation and thawing of hemopoietic stem cells. Transfus Apher Sci. 2016 Jun;54(3):324-36. doi: 10.1016/j.transci.2016.05.009. 
+          Lecchi L, Giovanelli S, Gagliardi B, Pezzali I, Ratti I, Marconi M. An update on methods for cryopreservation and thawing of hemopoietic stem cells. Transfus Apher Sci. 2016 Jun;54(3):324-36. doi: 10.1016/j.transci.2016.05.009.
         </Typography>
         <p><Typography variant="caption" color="text.secondary">
-          Hornberger K, Yu G, McKenna D, Hubel A. Cryopreservation of Hematopoietic Stem Cells: Emerging Assays, Cryoprotectant Agents, and Technology to Improve Outcomes. Transfus Med Hemother. 2019 Jun;46(3):188-196. doi: 10.1159/000496068. 
+          Hornberger K, Yu G, McKenna D, Hubel A. Cryopreservation of Hematopoietic Stem Cells: Emerging Assays, Cryoprotectant Agents, and Technology to Improve Outcomes. Transfus Med Hemother. 2019 Jun;46(3):188-196. doi: 10.1159/000496068.
         </Typography></p>
       </Paper>
     </Box>
