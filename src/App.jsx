@@ -12,8 +12,8 @@ import LinfoaferesisCalculator from './components/calculators/LinfoaferesisCalcu
 import CryopreservationCalculator from './components/calculators/CryopreservationCalculator';
 import TPECalculator from './components/calculators/TPECalculator';
 import RCECalculator from './components/calculators/RCECalculator';
-import CitrateCalculator from './components/calculators/CitrateCalculator';
-import DLICalculator from './components/calculators/DLICalculator';
+// import CitrateCalculator from './components/calculators/CitrateCalculator';
+// import DLICalculator from './components/calculators/DLICalculator';
 import DisclaimerModal from './components/common/DisclaimerModal';
 import FeedbackButton from './components/common/FeedbackButton';
 import NotFound from './pages/NotFound';
@@ -23,9 +23,9 @@ const calculators = [
   { id: 'linfoaferesis', label: 'Linfoaféresis', component: <LinfoaferesisCalculator /> },
   { id: 'tpe', label: 'Recambio Plasmático', component: <TPECalculator /> },
   { id: 'rce', label: 'Eritrocitaféresis', component: <RCECalculator /> },
-  { id: 'citrate', label: 'Citrato', component: <CitrateCalculator /> },
+  // { id: 'citrate', label: 'Citrato', component: <CitrateCalculator /> },
   { id: 'cryopreservation', label: 'Congelaciones', component: <CryopreservationCalculator /> },
-  { id: 'dli', label: 'DLI', component: <DLICalculator /> },
+  // { id: 'dli', label: 'DLI', component: <DLICalculator /> },
 ];
 
 function App() {
