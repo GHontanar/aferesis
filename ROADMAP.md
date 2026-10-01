@@ -319,6 +319,8 @@ Del brainstorm de nuevas funcionalidades, ordenado por utilidad/esfuerzo:
 6. Conversor de unidades SI ↔ convencionales.
 7. Rendimiento de máquina de aféresis (real vs teórico) y coste por
    procedimiento.
+8. Planificador de desensibilizaciones. Alcance y contenido clínico
+   pendientes de definir con el especialista.
 
 ---
 
