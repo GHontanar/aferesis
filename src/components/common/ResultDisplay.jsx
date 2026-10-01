@@ -11,6 +11,7 @@ import {
   TableRow,
   Chip
 } from '@mui/material';
+import { FUENTE_LIMITE_DMSO } from '../../utils/formulas/cryopreservationCalculations';
 
 export default function ResultDisplay({ result, tipo = 'cd34', formData }) {
   if (!result) return null;
@@ -350,9 +351,21 @@ export default function ResultDisplay({ result, tipo = 'cd34', formData }) {
         <Typography variant="h6" gutterBottom fontWeight={600} color="primary.dark" sx={{ mb: 2 }}>
           Resumen de Concentración
         </Typography>
-        <Typography variant="body1" gutterBottom>
-          Factor de concentración: <strong style={{ color: '#6D28D9' }}>{result.factorConcentracion}x</strong>
-        </Typography>
+        {result.diluir ? (
+          <>
+            <Typography variant="body1" gutterBottom>
+              Producto diluido: <strong style={{ color: '#6D28D9' }}>{result.volumenBase} ml</strong>
+              {' '}(+{result.volumenDilucion} ml de medio de dilución)
+            </Typography>
+            <Typography variant="body1" gutterBottom>
+              Factor de dilución: <strong style={{ color: '#6D28D9' }}>{result.factorDilucion}x</strong>
+            </Typography>
+          </>
+        ) : (
+          <Typography variant="body1" gutterBottom>
+            Factor de concentración: <strong style={{ color: '#6D28D9' }}>{result.factorConcentracion}x</strong>
+          </Typography>
+        )}
         <Typography variant="body1" gutterBottom>
           Volumen mínimo calculado: <strong style={{ color: '#6D28D9' }}>{result.volumenMinimo} ml</strong>
         </Typography>
@@ -405,6 +418,8 @@ export default function ResultDisplay({ result, tipo = 'cd34', formData }) {
               <TableCell align="center" sx={{ color: 'white', fontWeight: 700, fontSize: '0.9rem' }}>
                 {formData?.tipoProducto || 'Células'}/kg (×10⁶)
               </TableCell>
+              <TableCell align="center" sx={{ color: 'white', fontWeight: 700, fontSize: '0.9rem' }}>DMSO/ud (ml)</TableCell>
+              <TableCell align="center" sx={{ color: 'white', fontWeight: 700, fontSize: '0.9rem' }}>DMSO/ud (ml/kg)</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -425,11 +440,26 @@ export default function ResultDisplay({ result, tipo = 'cd34', formData }) {
                 <TableCell align="center">{item.concentracionFinal}</TableCell>
                 <TableCell align="center">{item.celulasTotal}</TableCell>
                 <TableCell align="center">{item.celulasPorKg}</TableCell>
+                <TableCell align="center">{item.dmsoMl ?? '-'}</TableCell>
+                <TableCell align="center">{item.dmsoMlPorKg ?? '-'}</TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </TableContainer>
+
+      {result.dosisDMSO && (
+        <Alert severity={result.dosisDMSO.superaLimite ? 'warning' : 'info'} sx={{ mt: 2 }}>
+          DMSO total a infundir: <strong>{result.dosisDMSO.dmsoMl} ml</strong>{' '}
+          (<strong>{result.dosisDMSO.mlPorKg} ml/kg</strong>).{' '}
+          {result.dosisDMSO.superaLimite
+            ? `Supera el límite de ${result.dosisDMSO.limiteMlKgDia} ml/kg/día si se infunde todo el mismo día.`
+            : `Dentro del límite de ${result.dosisDMSO.limiteMlKgDia} ml/kg/día.`}
+          <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
+            Fuente: {FUENTE_LIMITE_DMSO}
+          </Typography>
+        </Alert>
+      )}
 
       {result.volumenRestante > 1 && (
         <Alert severity="warning" sx={{ mt: 2 }}>

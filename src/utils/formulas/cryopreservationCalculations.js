@@ -11,8 +11,13 @@ export const CRYO = {
   CONTROLES_VOL_UNITARIO: 1,    // 1 ml cada criotubo de control
   HEMOCULTIVOS_CANTIDAD: 1,     // 1 muestra de hemocultivo
   HEMOCULTIVOS_VOL: 2,          // 2 ml para hemocultivos
-  CONCENTRACION_MAXIMA_DEFAULT: 250000, // células/mm³
+  CONCENTRACION_MAXIMA_DEFAULT: 250000, // células/mm³, en el producto antes de la mezcla
+  DMSO_LIMITE_ML_KG_DIA: 1,     // AABB Circular of Information (cellular therapy products)
 };
+
+export const FUENTE_LIMITE_DMSO =
+  'AABB, ASFA, ASTCT, FACT, ISCT, JACIE et al. Circular of Information for the Use of Cellular Therapy Products. ' +
+  'Productos descongelados sin lavar: no superar 1 mL de DMSO por kg de receptor y día.';
 
 CRYO.VOLUMEN_RESERVADO =
   (CRYO.CONTROLES_CANTIDAD * CRYO.CONTROLES_VOL_UNITARIO) + CRYO.HEMOCULTIVOS_VOL;
@@ -31,6 +36,58 @@ export const CONTENEDORES_DEFAULT = [
  */
 export function calcularVolumenMinimo(volumenInicial, concentracionLeucocitos, concentracionMaxima) {
   return volumenInicial * (concentracionLeucocitos / concentracionMaxima);
+}
+
+/**
+ * Indica si el producto supera la concentración máxima y hay que diluirlo
+ * antes de añadir la mezcla crioprotectora.
+ */
+export function requiereDilucion(volumenInicial, concentracionLeucocitos, concentracionMaxima) {
+  if (!(volumenInicial > 0 && concentracionLeucocitos > 0 && concentracionMaxima > 0)) return false;
+  return concentracionLeucocitos > concentracionMaxima;
+}
+
+/**
+ * Volumen de medio de dilución a añadir para llevar el producto al volumen diluido
+ */
+export function calcularVolumenDilucion(volumenInicial, volumenDiluido) {
+  return Math.max(0, volumenDiluido - volumenInicial);
+}
+
+/**
+ * Volumen base del producto antes de la mezcla crioprotectora:
+ * diluido si supera la concentración máxima, concentrado si se elige, o el inicial.
+ * Si se diluye, nunca queda por debajo del volumen mínimo.
+ */
+export function calcularVolumenBase({
+  volumenInicial,
+  concentracionLeucocitos,
+  concentracionMaxima,
+  concentrar,
+  volumenConcentrado,
+  volumenDiluido,
+}) {
+  if (requiereDilucion(volumenInicial, concentracionLeucocitos, concentracionMaxima)) {
+    const minimo = calcularVolumenMinimo(volumenInicial, concentracionLeucocitos, concentracionMaxima);
+    return { modo: 'diluir', volumen: Math.max(volumenDiluido || 0, minimo) };
+  }
+  if (concentrar) return { modo: 'concentrar', volumen: volumenConcentrado };
+  return { modo: 'ninguno', volumen: volumenInicial };
+}
+
+/**
+ * Dosis de DMSO que recibe el receptor con un volumen de producto final
+ * (concentración final de DMSO fija). Umbral: mL/kg/día (AABB).
+ */
+export function calcularDosisDMSO(volumenProductoFinal, pesoReceptor) {
+  const dmsoMl = volumenProductoFinal * (CRYO.DMSO_FINAL_PCT / 100);
+  const mlPorKg = pesoReceptor > 0 ? dmsoMl / pesoReceptor : 0;
+  return {
+    dmsoMl: parseFloat(dmsoMl.toFixed(2)),
+    mlPorKg: parseFloat(mlPorKg.toFixed(3)),
+    limiteMlKgDia: CRYO.DMSO_LIMITE_ML_KG_DIA,
+    superaLimite: mlPorKg > CRYO.DMSO_LIMITE_ML_KG_DIA,
+  };
 }
 
 /**
@@ -311,15 +368,26 @@ export function calcularProgramacionCongelacion(params) {
     concentrar,
     concentracionMaxima,
     volumenConcentrado,
+    volumenDiluido,
     modoDistribucion,
     tiposAlicuotas,
     tiposContenedores,
   } = params;
 
-  const volEfectivo = concentrar ? volumenConcentrado : volumenInicial;
+  // 0. Volumen base: diluido, concentrado o inicial
+  const { modo: modoAjuste, volumen: volEfectivo } = calcularVolumenBase({
+    volumenInicial,
+    concentracionLeucocitos,
+    concentracionMaxima,
+    concentrar,
+    volumenConcentrado,
+    volumenDiluido,
+  });
+  const diluir = modoAjuste === 'diluir';
+  const volumenDilucion = diluir ? calcularVolumenDilucion(volumenInicial, volEfectivo) : 0;
 
-  // 1. Volumen mínimo (solo relevante si se concentra)
-  const volumenMinimo = concentrar
+  // 1. Volumen mínimo (relevante al concentrar o diluir)
+  const volumenMinimo = concentrar || diluir
     ? calcularVolumenMinimo(volumenInicial, concentracionLeucocitos, concentracionMaxima)
     : volumenInicial;
 
@@ -363,13 +431,19 @@ export function calcularProgramacionCongelacion(params) {
     return { error: resultadoDistribucion.error };
   }
 
-  // 8. Calcular células por contenedor
+  // 8. Calcular células y DMSO por contenedor
   const distribucionFinal = calcularCelulasPorContenedor(
     resultadoDistribucion.distribucion,
     concentracionFinal,
     pesoReceptor,
     tipoProducto,
-  );
+  ).map(contenedor => {
+    const dosis = calcularDosisDMSO(contenedor.volumenUnitario, pesoReceptor);
+    return { ...contenedor, dmsoMl: dosis.dmsoMl, dmsoMlPorKg: dosis.mlPorKg };
+  });
+
+  // 8b. DMSO total del producto a infundir (sin controles ni hemocultivos)
+  const dosisDMSO = calcularDosisDMSO(resultadoDistribucion.volumenDistribuido, pesoReceptor);
 
   // 9. Agregar controles y hemocultivos
   const concentracionPorMl = concentracionFinal * 1000;
@@ -383,6 +457,8 @@ export function calcularProgramacionCongelacion(params) {
     celulasTotal: ((concentracionPorMl * CRYO.CONTROLES_VOL_UNITARIO) / 1000000).toFixed(2),
     celulasPorKg: ((concentracionPorMl * CRYO.CONTROLES_VOL_UNITARIO) / 1000000 / pesoReceptor).toFixed(2),
     tipoCelula: tipoProducto,
+    dmsoMl: '-',
+    dmsoMlPorKg: '-',
   };
 
   const hemocultivos = {
@@ -394,6 +470,8 @@ export function calcularProgramacionCongelacion(params) {
     celulasTotal: '-',
     celulasPorKg: '-',
     tipoCelula: tipoProducto,
+    dmsoMl: '-',
+    dmsoMlPorKg: '-',
   };
 
   return {
@@ -409,6 +487,11 @@ export function calcularProgramacionCongelacion(params) {
     volumenDistribuido: resultadoDistribucion.volumenDistribuido,
     volumenRestante: resultadoDistribucion.volumenRestante,
     modoDistribucion,
-    concentrar,
+    concentrar: concentrar && !diluir,
+    diluir,
+    volumenBase: parseFloat(volEfectivo.toFixed(2)),
+    volumenDilucion: parseFloat(volumenDilucion.toFixed(2)),
+    factorDilucion: (volEfectivo / volumenInicial).toFixed(2),
+    dosisDMSO,
   };
 }

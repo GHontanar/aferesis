@@ -13,6 +13,10 @@ import {
   distribuirEnContenedores,
   calcularCelulasPorContenedor,
   calcularProgramacionCongelacion,
+  requiereDilucion,
+  calcularVolumenDilucion,
+  calcularVolumenBase,
+  calcularDosisDMSO,
 } from '../cryopreservationCalculations';
 
 describe('Constantes CRYO', () => {
@@ -325,5 +329,161 @@ describe('calcularProgramacionCongelacion', () => {
     expect(controles.cantidad).toBe(CRYO.CONTROLES_CANTIDAD);
     expect(controles.volumenUnitario).toBe(CRYO.CONTROLES_VOL_UNITARIO);
     expect(hemocultivos.volumenTotal).toBe(CRYO.HEMOCULTIVOS_VOL);
+  });
+});
+
+describe('requiereDilucion', () => {
+  it('true si los leucocitos superan la concentración máxima', () => {
+    expect(requiereDilucion(100, 400000, 250000)).toBe(true);
+  });
+
+  it('false en el límite exacto o por debajo', () => {
+    expect(requiereDilucion(100, 250000, 250000)).toBe(false);
+    expect(requiereDilucion(100, 100000, 250000)).toBe(false);
+  });
+
+  it('false con datos ausentes o no válidos', () => {
+    expect(requiereDilucion(100, 400000, 0)).toBe(false);
+    expect(requiereDilucion(100, 400000, NaN)).toBe(false);
+    expect(requiereDilucion(0, 400000, 250000)).toBe(false);
+    expect(requiereDilucion(100, undefined, 250000)).toBe(false);
+  });
+});
+
+describe('calcularVolumenDilucion', () => {
+  it('diferencia entre volumen diluido e inicial', () => {
+    expect(calcularVolumenDilucion(100, 160)).toBe(60);
+  });
+
+  it('nunca negativo', () => {
+    expect(calcularVolumenDilucion(100, 80)).toBe(0);
+  });
+});
+
+describe('calcularVolumenBase', () => {
+  const base = {
+    volumenInicial: 100,
+    concentracionLeucocitos: 400000,
+    concentracionMaxima: 250000,
+    concentrar: false,
+    volumenConcentrado: undefined,
+    volumenDiluido: undefined,
+  };
+
+  it('diluye al volumen mínimo si no se indica volumen diluido', () => {
+    // 100 × 400000 / 250000 = 160 ml
+    expect(calcularVolumenBase(base)).toEqual({ modo: 'diluir', volumen: 160 });
+  });
+
+  it('respeta un volumen diluido mayor que el mínimo', () => {
+    expect(calcularVolumenBase({ ...base, volumenDiluido: 200 }).volumen).toBe(200);
+  });
+
+  it('no permite diluir por debajo del mínimo', () => {
+    expect(calcularVolumenBase({ ...base, volumenDiluido: 120 }).volumen).toBe(160);
+  });
+
+  it('la dilución prevalece sobre concentrar', () => {
+    expect(calcularVolumenBase({ ...base, concentrar: true, volumenConcentrado: 50 }).modo).toBe('diluir');
+  });
+
+  it('concentra si se elige y no hace falta diluir', () => {
+    const r = calcularVolumenBase({ ...base, concentracionLeucocitos: 100000, concentrar: true, volumenConcentrado: 50 });
+    expect(r).toEqual({ modo: 'concentrar', volumen: 50 });
+  });
+
+  it('sin ajuste usa el volumen inicial', () => {
+    expect(calcularVolumenBase({ ...base, concentracionLeucocitos: 100000 })).toEqual({ modo: 'ninguno', volumen: 100 });
+  });
+});
+
+describe('calcularDosisDMSO', () => {
+  it('DMSO = 10% del volumen final', () => {
+    // 300 ml × 10% = 30 ml; 30 / 70 kg = 0.429 ml/kg
+    const r = calcularDosisDMSO(300, 70);
+    expect(r.dmsoMl).toBe(30);
+    expect(r.mlPorKg).toBeCloseTo(0.429, 3);
+    expect(r.limiteMlKgDia).toBe(1);
+    expect(r.superaLimite).toBe(false);
+  });
+
+  it('en el límite exacto no lo supera', () => {
+    // 100 ml → 10 ml DMSO; 10 kg → 1 ml/kg
+    expect(calcularDosisDMSO(100, 10).superaLimite).toBe(false);
+  });
+
+  it('detecta cuando se supera el límite', () => {
+    // 300 ml → 30 ml DMSO; 20 kg → 1.5 ml/kg
+    const r = calcularDosisDMSO(300, 20);
+    expect(r.mlPorKg).toBeCloseTo(1.5);
+    expect(r.superaLimite).toBe(true);
+  });
+
+  it('peso no válido devuelve 0 ml/kg', () => {
+    expect(calcularDosisDMSO(100, 0).mlPorKg).toBe(0);
+  });
+});
+
+describe('calcularProgramacionCongelacion con dilución', () => {
+  const params = {
+    tipoProducto: 'CD34',
+    volumenInicial: 100,
+    concentracionCelulas: 1000,
+    concentracionLeucocitos: 400000,
+    pesoReceptor: 70,
+    concentrar: false,
+    concentracionMaxima: 250000,
+    volumenConcentrado: NaN,
+    volumenDiluido: 160,
+    modoDistribucion: 'automatica',
+    tiposAlicuotas: [],
+    tiposContenedores: CONTENEDORES_DEFAULT,
+  };
+
+  it('diluye, aplica la mezcla 1:1 sobre el volumen diluido y mantiene DMSO al 10%', () => {
+    const r = calcularProgramacionCongelacion(params);
+    expect(r.error).toBeUndefined();
+    expect(r.diluir).toBe(true);
+    expect(r.concentrar).toBe(false);
+    expect(r.volumenBase).toBe(160);
+    expect(r.volumenDilucion).toBe(60);
+    expect(r.factorDilucion).toBe('1.60');
+    expect(r.dmso).toBe(32);       // 20% de 160
+    expect(r.volumenTotal).toBe(320);
+    expect(r.concentracionDMSO).toBe(10);
+    expect(parseFloat(r.volumenMinimo)).toBeCloseTo(160);
+  });
+
+  it('conserva las células totales: concentración final = inicial × V0 / Vtotal', () => {
+    const r = calcularProgramacionCongelacion(params);
+    // 1000 × 100 / 320 = 312.5
+    expect(parseFloat(r.concentracionFinal)).toBeCloseTo(312.5, 1);
+  });
+
+  it('la concentración de leucocitos antes de la mezcla queda en el máximo', () => {
+    const r = calcularProgramacionCongelacion(params);
+    expect((params.concentracionLeucocitos * params.volumenInicial) / r.volumenBase).toBeCloseTo(250000);
+  });
+
+  it('calcula DMSO total infundible y por contenedor', () => {
+    const r = calcularProgramacionCongelacion(params);
+    expect(r.dosisDMSO.dmsoMl).toBeCloseTo(r.volumenDistribuido * 0.1, 1);
+    expect(r.dosisDMSO.superaLimite).toBe(false);
+    const bolsa = r.distribucion.find(d => d.tipo.startsWith('Bolsa'));
+    expect(bolsa.dmsoMl).toBeCloseTo(bolsa.volumenUnitario * 0.1, 2);
+    expect(r.distribucion.find(d => d.tipo === 'Controles').dmsoMl).toBe('-');
+  });
+
+  it('avisa si el DMSO supera el límite en receptor de bajo peso', () => {
+    const r = calcularProgramacionCongelacion({ ...params, pesoReceptor: 20 });
+    // ~316 ml distribuidos → ~31.6 ml DMSO / 20 kg ≈ 1.58 ml/kg
+    expect(r.dosisDMSO.superaLimite).toBe(true);
+  });
+
+  it('sin dilución no añade volumen', () => {
+    const r = calcularProgramacionCongelacion({ ...params, concentracionLeucocitos: 100000 });
+    expect(r.diluir).toBe(false);
+    expect(r.volumenDilucion).toBe(0);
+    expect(r.volumenBase).toBe(100);
   });
 });

@@ -22,6 +22,10 @@ import {
   calcularConcentracionFinal,
   calcularAlicuotasMultiples,
   calcularProgramacionCongelacion,
+  requiereDilucion,
+  calcularVolumenBase,
+  calcularVolumenDilucion,
+  calcularDosisDMSO,
 } from '../../utils/formulas/cryopreservationCalculations';
 import { validarRango, validations } from '../../utils/validation';
 import ResultDisplay from '../common/ResultDisplay';
@@ -41,6 +45,7 @@ const INITIAL_FORM_DATA = {
   concentrar: false,
   concentracionMaxima: String(CRYO.CONCENTRACION_MAXIMA_DEFAULT),
   volumenConcentrado: '',
+  volumenDiluido: '',
   modoDistribucion: 'automatica',
 };
 
@@ -68,10 +73,30 @@ export default function CryopreservationCalculator() {
     return 0;
   }, [formData.volumenInicial, formData.concentracionLeucocitos, formData.concentracionMaxima]);
 
+  const diluir = useMemo(() => requiereDilucion(
+    parseFloat(formData.volumenInicial),
+    parseFloat(formData.concentracionLeucocitos),
+    parseFloat(formData.concentracionMaxima),
+  ), [formData.volumenInicial, formData.concentracionLeucocitos, formData.concentracionMaxima]);
+
   const volEfectivo = useMemo(() => {
-    if (!formData.concentrar) return parseFloat(formData.volumenInicial) || 0;
-    return parseFloat(formData.volumenConcentrado) || 0;
-  }, [formData.concentrar, formData.volumenInicial, formData.volumenConcentrado]);
+    const { volumen } = calcularVolumenBase({
+      volumenInicial: parseFloat(formData.volumenInicial),
+      concentracionLeucocitos: parseFloat(formData.concentracionLeucocitos),
+      concentracionMaxima: parseFloat(formData.concentracionMaxima),
+      concentrar: formData.concentrar,
+      volumenConcentrado: parseFloat(formData.volumenConcentrado),
+      volumenDiluido: parseFloat(formData.volumenDiluido),
+    });
+    return volumen || 0;
+  }, [
+    formData.volumenInicial, formData.concentracionLeucocitos, formData.concentracionMaxima,
+    formData.concentrar, formData.volumenConcentrado, formData.volumenDiluido,
+  ]);
+
+  const volumenDilucion = diluir
+    ? calcularVolumenDilucion(parseFloat(formData.volumenInicial), volEfectivo)
+    : 0;
 
   const factorConcentracion = useMemo(() => {
     const vol = parseFloat(formData.volumenInicial);
@@ -96,6 +121,15 @@ export default function CryopreservationCalculator() {
     }
     return 0;
   }, [formData.volumenInicial, formData.concentracionCelulas, criopreservante.volumenTotal]);
+
+  // Estimación previa a la distribución: todo el volumen salvo controles y hemocultivos
+  const dosisDMSOEstimada = useMemo(() => {
+    const peso = parseFloat(formData.pesoReceptor);
+    if (peso > 0 && criopreservante.volumenTotal > 0) {
+      return calcularDosisDMSO(Math.max(0, criopreservante.volumenTotal - CRYO.VOLUMEN_RESERVADO), peso);
+    }
+    return null;
+  }, [formData.pesoReceptor, criopreservante.volumenTotal]);
 
   const alicuotasInfo = useMemo(() => {
     const peso = parseFloat(formData.pesoReceptor);
@@ -184,10 +218,15 @@ export default function CryopreservationCalculator() {
 
   const validarPaso2 = () => {
     const errs = [];
-    if (formData.concentrar) {
-      if (!formData.concentracionMaxima || parseFloat(formData.concentracionMaxima) <= 0) {
-        errs.push('Concentración máxima debe ser mayor a 0');
+    if (!formData.concentracionMaxima || parseFloat(formData.concentracionMaxima) <= 0) {
+      errs.push('Concentración máxima debe ser mayor a 0');
+    }
+    if (diluir) {
+      const volDil = parseFloat(formData.volumenDiluido);
+      if (!volDil || volDil < volumenMinimo) {
+        errs.push(`Volumen tras dilución debe ser al menos ${volumenMinimo.toFixed(2)} ml`);
       }
+    } else if (formData.concentrar) {
       const volConc = parseFloat(formData.volumenConcentrado);
       if (!volConc || volConc < volumenMinimo) {
         errs.push(`Volumen concentrado debe ser al menos ${volumenMinimo.toFixed(2)} ml`);
@@ -223,8 +262,16 @@ export default function CryopreservationCalculator() {
     }
     setErrores([]);
 
+    // Al pasar del paso 1 al 2, inicializar volumen diluido al mínimo si hace falta diluir
+    if (activeStep === 0 && diluir) {
+      const volDil = parseFloat(formData.volumenDiluido);
+      if (!volDil || volDil < volumenMinimo) {
+        setFormData(prev => ({ ...prev, volumenDiluido: volumenMinimo.toFixed(2) }));
+      }
+    }
+
     // Al pasar del paso 1 al 2, inicializar volumen concentrado si concentrar está activo
-    if (activeStep === 0 && formData.concentrar && !formData.volumenConcentrado) {
+    if (activeStep === 0 && !diluir && formData.concentrar && !formData.volumenConcentrado) {
       setFormData(prev => ({
         ...prev,
         volumenConcentrado: volumenMinimo > 0 ? volumenMinimo.toFixed(2) : prev.volumenInicial,
@@ -265,6 +312,7 @@ export default function CryopreservationCalculator() {
       concentrar: formData.concentrar,
       concentracionMaxima: parseFloat(formData.concentracionMaxima),
       volumenConcentrado: parseFloat(formData.volumenConcentrado),
+      volumenDiluido: parseFloat(formData.volumenDiluido),
       modoDistribucion: formData.modoDistribucion,
       tiposAlicuotas: formData.modoDistribucion === 'alicuotas' ? tiposAlicuotas : [],
       tiposContenedores,
@@ -355,6 +403,10 @@ export default function CryopreservationCalculator() {
                 volumenMinimo={volumenMinimo}
                 factorConcentracion={factorConcentracion}
                 criopreservante={criopreservante}
+                diluir={diluir}
+                volumenDilucion={volumenDilucion}
+                volEfectivo={volEfectivo}
+                dosisDMSOEstimada={dosisDMSOEstimada}
                 onToggleConcentrar={handleToggleConcentrar}
                 onSliderChange={handleSliderChange}
               />
@@ -444,6 +496,9 @@ export default function CryopreservationCalculator() {
         </Typography>
         <p><Typography variant="caption" color="text.secondary">
           Hornberger K, Yu G, McKenna D, Hubel A. Cryopreservation of Hematopoietic Stem Cells: Emerging Assays, Cryoprotectant Agents, and Technology to Improve Outcomes. Transfus Med Hemother. 2019 Jun;46(3):188-196. doi: 10.1159/000496068.
+        </Typography></p>
+        <p><Typography variant="caption" color="text.secondary">
+          AABB, America's Blood Centers, American Red Cross, ASFA, ASTCT, CAP, Cord Blood Association, FACT, ICCBBA, ISCT, JACIE, NMDP, WMDA. Circular of Information for the Use of Cellular Therapy Products. Límite de DMSO en productos descongelados sin lavar: 1 mL/kg de receptor y día.
         </Typography></p>
       </Paper>
     </Box>

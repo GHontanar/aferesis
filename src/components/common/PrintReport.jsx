@@ -221,9 +221,11 @@ export default function PrintReport({ data, result, tipo = 'cd34' }) {
       `,
 
       cryopreservation: () => {
-        const volEfectivo = data.concentrar
-          ? data.volumenConcentrado
-          : data.volumenInicial;
+        const volEfectivo = result.volumenBase ?? (data.concentrar ? data.volumenConcentrado : data.volumenInicial);
+        const etiquetaAjuste = result.diluir
+          ? ` (diluido: +${result.volumenDilucion} ml de medio de dilución)`
+          : result.concentrar ? '' : ' (sin concentrar)';
+        const dmso = result.dosisDMSO;
 
         return `
           ${header}
@@ -243,8 +245,8 @@ export default function PrintReport({ data, result, tipo = 'cd34' }) {
           <div class="result-box">
             <div class="params">
               <p class="param"><strong>Volumen mínimo:</strong> ${result.volumenMinimo} ml</p>
-              <p class="param"><strong>Volumen efectivo:</strong> ${volEfectivo} ml${result.concentrar ? '' : ' (sin concentrar)'}</p>
-              <p class="param"><strong>Factor:</strong> ${result.factorConcentracion}x</p>
+              <p class="param"><strong>Volumen efectivo:</strong> ${volEfectivo} ml${etiquetaAjuste}</p>
+              <p class="param"><strong>Factor:</strong> ${result.diluir ? `dilución ${result.factorDilucion}x` : `${result.factorConcentracion}x`}</p>
               <p class="param"><strong>Conc. final ${data.tipoProducto}:</strong> ${result.concentracionFinal} células/μL</p>
             </div>
           </div>
@@ -269,6 +271,8 @@ export default function PrintReport({ data, result, tipo = 'cd34' }) {
                 <th class="center">Conc. (cél/μL)</th>
                 <th class="center">${data.tipoProducto} (×10⁶)</th>
                 <th class="center">${data.tipoProducto}/kg (×10⁶)</th>
+                <th class="center">DMSO/ud (ml)</th>
+                <th class="center">DMSO/ud (ml/kg)</th>
               </tr>
             </thead>
             <tbody>
@@ -280,6 +284,8 @@ export default function PrintReport({ data, result, tipo = 'cd34' }) {
                   <td class="center">${item.concentracionFinal}</td>
                   <td class="center">${item.celulasTotal}</td>
                   <td class="center">${item.celulasPorKg}</td>
+                  <td class="center">${item.dmsoMl ?? '-'}</td>
+                  <td class="center">${item.dmsoMlPorKg ?? '-'}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -289,9 +295,16 @@ export default function PrintReport({ data, result, tipo = 'cd34' }) {
             &nbsp;|&nbsp;
             <strong>Restante:</strong> ${result.volumenRestante} ml
           </div>
+          ${dmso ? `
+          <div class="summary">
+            <strong>DMSO total a infundir:</strong> ${dmso.dmsoMl} ml (${dmso.mlPorKg} ml/kg)
+            &nbsp;|&nbsp;
+            ${dmso.superaLimite ? `<strong>Supera el límite de ${dmso.limiteMlKgDia} ml/kg/día si se infunde todo el mismo día</strong>` : `Dentro del límite de ${dmso.limiteMlKgDia} ml/kg/día`}
+          </div>` : ''}
           ${footer([
             'Lecchi L, et al. An update on methods for cryopreservation and thawing of hemopoietic stem cells. Transfus Apher Sci. 2016;54(3):324-36.',
-            'Hornberger K, et al. Cryopreservation of Hematopoietic Stem Cells. Transfus Med Hemother. 2019;46(3):188-196.'
+            'Hornberger K, et al. Cryopreservation of Hematopoietic Stem Cells. Transfus Med Hemother. 2019;46(3):188-196.',
+            'AABB, ASFA, ASTCT, FACT, ISCT, JACIE et al. Circular of Information for the Use of Cellular Therapy Products (límite de DMSO: 1 mL/kg/día).'
           ])}
         `;
       },
