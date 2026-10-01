@@ -128,7 +128,7 @@ export default function CryoStepConcentracion({
             )}
             <br />
             DMSO (20%): <strong>{criopreservante.dmso} ml</strong><br />
-            Plasma (80%): <strong>{criopreservante.plasma} ml</strong><br />
+            Medio (80%): <strong>{criopreservante.plasma} ml</strong><br />
             Volumen total final: <strong>{criopreservante.volumenTotal} ml</strong><br />
             Concentración DMSO final: <strong>{criopreservante.concentracionDMSO}%</strong>
           </Typography>

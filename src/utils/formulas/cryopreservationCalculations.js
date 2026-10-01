@@ -98,7 +98,7 @@ export function calcularFactorConcentracion(volumenInicial, volumenConcentrado) 
 }
 
 /**
- * Calcula volúmenes de criopreservante (DMSO y Plasma)
+ * Calcula volúmenes de criopreservante (DMSO y medio; campo `plasma` por compatibilidad)
  */
 export function calcularCriopreservante(volumenConcentrado) {
   const dmso = volumenConcentrado * CRYO.DMSO_RATIO;

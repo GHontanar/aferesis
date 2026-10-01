@@ -255,7 +255,7 @@ export default function PrintReport({ data, result, tipo = 'cd34' }) {
           <div class="result-box">
             <div class="params">
               <p class="param"><strong>DMSO (20%):</strong> ${result.dmso} ml</p>
-              <p class="param"><strong>Plasma (80%):</strong> ${result.plasma} ml</p>
+              <p class="param"><strong>Medio (80%):</strong> ${result.plasma} ml</p>
               <p class="param"><strong>Volumen total:</strong> ${result.volumenTotal} ml</p>
               <p class="param"><strong>DMSO final:</strong> ${result.concentracionDMSO}%</p>
             </div>

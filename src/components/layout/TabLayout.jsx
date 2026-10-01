@@ -21,7 +21,7 @@ const CARD_DESCRIPTIONS = {
   tpe: 'Volumen plasmático, líquido de reposición y eliminación de IgG',
   rce: 'Volumen de intercambio y unidades de concentrado de hematíes',
   citrate: 'Tasa de citrato, riesgo de toxicidad y suplementación de calcio',
-  cryopreservation: 'Distribución en contenedores con DMSO/plasma',
+  cryopreservation: 'Distribución en contenedores con DMSO/medio',
   dli: 'Esquema de escalada de dosis y volúmenes de descongelación',
 };
 

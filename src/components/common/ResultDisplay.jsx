@@ -388,7 +388,7 @@ export default function ResultDisplay({ result, tipo = 'cd34', formData }) {
           DMSO necesario (20%): <strong style={{ color: '#065F46' }}>{result.dmso} ml</strong>
         </Typography>
         <Typography variant="body1" gutterBottom>
-          Plasma necesario (80%): <strong style={{ color: '#065F46' }}>{result.plasma} ml</strong>
+          Medio necesario (80%): <strong style={{ color: '#065F46' }}>{result.plasma} ml</strong>
         </Typography>
         <Typography variant="body1" gutterBottom>
           Volumen total: <strong style={{ color: '#065F46' }}>{result.volumenTotal} ml</strong>
