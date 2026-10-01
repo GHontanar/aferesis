@@ -188,3 +188,40 @@ Para actualizar la aplicación:
 ---
 
 ¡Buena suerte con tu deployment! 🚀
+
+## 📨 Formulario de feedback (Resend)
+
+El botón de feedback envía a `POST /api/feedback`, una Cloudflare Pages Function
+(`functions/api/feedback.js`) que manda el correo con Resend:
+
+- **Remitente**: `avisos@ghontanar.com` (dominio verificado en Resend)
+- **Destinatario**: `privacidad@ghontanar.com`
+- **Reply-To**: el email del usuario, si lo indica
+
+### Configuración
+
+1. En Resend → **API Keys** → *Create API Key*: permiso **Sending access**,
+   dominio `ghontanar.com`.
+2. En Cloudflare → Pages → proyecto → **Settings → Variables and Secrets**:
+   añadir `RESEND_API_KEY` como **Secret** (tipo *encrypted*) en **Production**
+   (y en **Preview** si quieres probar desde `dev`).
+3. Volver a desplegar: los secrets solo se aplican en despliegues nuevos.
+
+Sin `RESEND_API_KEY` el endpoint responde 500 y el formulario muestra un error.
+
+### Desarrollo local
+
+Crear `.dev.vars` (ignorado por git) con `RESEND_API_KEY=re_...` y ejecutar:
+
+```bash
+npm run build
+npx wrangler pages dev dist
+```
+
+### Anti-spam
+
+- Honeypot (campo oculto `website`): los envíos que lo rellenan se descartan en silencio.
+- Solo acepta peticiones con `Origin` de la propia web.
+- Rate limit en memoria: 5 envíos / 10 min por IP. Es por isolate (best-effort);
+  para un límite global, añadir una regla de **Rate limiting** en Cloudflare WAF
+  sobre `/api/feedback`.

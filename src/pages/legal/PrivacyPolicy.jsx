@@ -1,11 +1,11 @@
 import { Typography, Box } from '@mui/material';
-import { LAST_UPDATE } from '../../utils/constants';
+import { PRIVACY_LAST_UPDATE } from '../../utils/constants';
 
 export default function PrivacyPolicy() {
   return (
     <Box>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        Última actualización: {LAST_UPDATE}
+        Última actualización: {PRIVACY_LAST_UPDATE}
       </Typography>
 
       <Box sx={{ mb: 3 }}>
@@ -13,8 +13,32 @@ export default function PrivacyPolicy() {
           Información que recopilamos
         </Typography>
         <Typography variant="body2" paragraph>
-          <strong>No se recopila ningún dato personal.</strong> La aplicación funciona
+          <strong>Las calculadoras no recopilan ningún dato personal.</strong> Funcionan
           completamente en su navegador.
+        </Typography>
+      </Box>
+
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="subtitle1" gutterBottom fontWeight={600}>
+          Formulario de feedback
+        </Typography>
+        <Typography component="ul" variant="body2" sx={{ pl: 2 }}>
+          <li>
+            Si envía feedback, se transmiten el tipo, el mensaje, la página desde la que se envía y,
+            solo si lo indica, su email
+          </li>
+          <li>Se reciben por correo electrónico y se usan exclusivamente para mejorar la aplicación</li>
+          <li>El email, si lo facilita, se usa únicamente para responderle</li>
+          <li>
+            El envío se realiza a través de Resend (proveedor de correo electrónico)
+          </li>
+          <li>
+            <strong>No incluya datos de pacientes</strong> ni información que permita identificarlos
+          </li>
+          <li>
+            Puede solicitar el acceso o la eliminación de sus mensajes escribiendo a
+            privacidad@ghontanar.com
+          </li>
         </Typography>
       </Box>
 
@@ -34,7 +58,7 @@ export default function PrivacyPolicy() {
         </Typography>
         <Typography component="ul" variant="body2" sx={{ pl: 2 }}>
           <li>Todos los cálculos se realizan localmente en su navegador</li>
-          <li>No se transmiten datos a ningún servidor</li>
+          <li>Los datos de los cálculos no se transmiten a ningún servidor</li>
           <li>Los datos se eliminan al cerrar la aplicación</li>
         </Typography>
       </Box>
@@ -44,8 +68,9 @@ export default function PrivacyPolicy() {
           Terceros
         </Typography>
         <Typography component="ul" variant="body2" sx={{ pl: 2 }}>
-          <li>No se comparten datos con terceros</li>
-          <li>Alojamiento en Cloudflare Pages (solo archivos estáticos)</li>
+          <li>No se comparten datos con terceros salvo lo indicado para el feedback</li>
+          <li>Alojamiento en Cloudflare Pages</li>
+          <li>Envío de los mensajes de feedback mediante Resend</li>
         </Typography>
       </Box>
     </Box>

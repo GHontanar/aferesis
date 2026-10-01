@@ -97,3 +97,29 @@ export const META = {
   author: 'Calculadora de Aféresis',
   type: 'website',
 };
+
+// Fecha de la política de privacidad (independiente de LAST_UPDATE)
+export const PRIVACY_LAST_UPDATE = 'Octubre 2026';
+
+// Formulario de feedback (compartido entre cliente y Pages Function)
+export const FEEDBACK = {
+  ENDPOINT: '/api/feedback',
+  TIPOS: {
+    ERROR: 'error',
+    SUGERENCIA: 'sugerencia',
+    OTRO: 'otro',
+  },
+  TIPO_LABELS: {
+    error: 'Error',
+    sugerencia: 'Sugerencia',
+    otro: 'Otro',
+  },
+  MENSAJE_MIN: 10,
+  MENSAJE_MAX: 2000,
+  EMAIL_MAX: 254,
+  PAGINA_MAX: 200,
+  FROM: 'Calculadora de Aféresis <avisos@ghontanar.com>',
+  TO: 'privacidad@ghontanar.com',
+  RATE_LIMIT_MAX: 5,
+  RATE_LIMIT_WINDOW_MS: 10 * 60 * 1000,
+};
