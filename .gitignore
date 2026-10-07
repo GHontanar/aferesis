@@ -26,3 +26,6 @@ npm-debug.log*
 # Cloudflare (secretos locales de wrangler)
 .dev.vars
 .wrangler/
+
+# Planificación local (no versionar)
+ROADMAP.md
