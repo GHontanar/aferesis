@@ -102,4 +102,40 @@ describe('calcularTPE', () => {
     const r = calcularTPE(paramsBase);
     expect(r.volumenTotalSerie).toBe(r.volumenIntercambio * r.numSesiones);
   });
+
+  it('modo adulto no añade campos pediátricos', () => {
+    const r = calcularTPE(paramsBase);
+    expect(r.metodoVolemia).toBe('nadler');
+    expect(r.franjaVolemia).toBeUndefined();
+    expect(r.volemiaMlKg).toBeUndefined();
+  });
+
+  it('franja pediátrica estima la volemia por peso sin usar altura ni sexo', () => {
+    const r = calcularTPE({
+      ...paramsBase,
+      peso: 8,
+      altura: undefined,
+      sexo: undefined,
+      franjaVolemia: 'lactante'
+    });
+    expect(r.metodoVolemia).toBe('pediatrico');
+    expect(parseFloat(r.volemia)).toBeCloseTo(8 * 75 / 1000, 2); // 0.6 L
+    expect(r.franjaVolemia).toBe('Lactante (3 meses a 2 años)');
+    expect(r.volemiaMlKg).toBe(75);
+    expect(r.volemiaRangoMlKg).toBe('70–80');
+  });
+
+  it('volumen de intercambio pediátrico es coherente con la volemia por peso', () => {
+    const r = calcularTPE({
+      peso: 3,
+      franjaVolemia: 'termino',
+      hematocrito: 40,
+      volemiasIntercambio: 1.0,
+      tipoReposicion: 'albumina5',
+      numSesiones: 2
+    });
+    // volemia 0.255 L → plasma 0.153 L → intercambio 153 mL
+    expect(r.volumenIntercambio).toBe(153);
+    expect(r.reposicion.albumina5).toBe(153);
+  });
 });

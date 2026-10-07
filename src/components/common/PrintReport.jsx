@@ -1,5 +1,6 @@
 import { Button } from '@mui/material';
 import PrintIcon from '@mui/icons-material/Print';
+import { NOTA_FUENTE_VOLEMIA } from '../../utils/data/volemiaPediatrica.js';
 
 const CSS = `
   @page { margin: 15mm 10mm; size: A4; }
@@ -48,6 +49,19 @@ export default function PrintReport({ data, result, tipo = 'cd34' }) {
 
     const nadlerRef = 'Nadler SB, Hidalgo JH, Bloch T. Prediction of blood volume in normal human adults. Surgery. 1962;51(2):224-32.';
 
+    // Nota de método de estimación de la volemia cuando es pediátrica (por peso)
+    const volemiaNota = (result) => (
+      result && result.metodoVolemia === 'pediatrico'
+        ? ` — por peso: ${result.volemiaMlKg} mL/kg (rango ${result.volemiaRangoMlKg}); ${result.franjaVolemia}`
+        : ''
+    );
+
+    const refsVolemia = (result, refsBase) => (
+      result && result.metodoVolemia === 'pediatrico'
+        ? [NOTA_FUENTE_VOLEMIA, ...refsBase]
+        : refsBase
+    );
+
     const generators = {
       cd34: () => `
         ${header}
@@ -64,13 +78,13 @@ export default function PrintReport({ data, result, tipo = 'cd34' }) {
           </div>
         </div>
         <div class="result-box${result.advertencia ? '' : ' highlight'}">
-          <p class="param"><strong>Volemia donante:</strong> ${result.volemiaDonante} L</p>
+          <p class="param"><strong>Volemia donante:</strong> ${result.volemiaDonante} L${volemiaNota(result)}</p>
           <p class="param"><strong>CD34 totales requeridas:</strong> ${result.cd34Totales} ×10⁶</p>
           <p class="param"><strong>Volumen a procesar:</strong> ${result.volumenProcesar} L</p>
           <p class="result-big${result.advertencia ? ' warn' : ''}">Volemias a procesar: ${result.volemias}</p>
           ${result.advertencia ? '<p style="color:#b45309;font-size:13px;">Procedimiento requiere 4+ volemias. Evaluar con precaución.</p>' : ''}
         </div>
-        ${footer([nadlerRef])}
+        ${footer(refsVolemia(result, [nadlerRef]))}
       `,
 
       linfoaferesis: () => `
@@ -89,13 +103,13 @@ export default function PrintReport({ data, result, tipo = 'cd34' }) {
           </div>
         </div>
         <div class="result-box${result.advertencia ? '' : ' highlight'}">
-          <p class="param"><strong>Volemia donante:</strong> ${result.volemiaDonante} L</p>
+          <p class="param"><strong>Volemia donante:</strong> ${result.volemiaDonante} L${volemiaNota(result)}</p>
           <p class="param"><strong>CD3 totales requeridas:</strong> ${result.cd3Totales} ×10⁶</p>
           <p class="param"><strong>Volumen a procesar:</strong> ${result.volumenProcesar} L</p>
           <p class="result-big${result.advertencia ? ' warn' : ''}">Volemias a procesar: ${result.volemias}</p>
           ${result.advertencia ? '<p style="color:#b45309;font-size:13px;">Procedimiento requiere 4+ volemias. Evaluar con precaución.</p>' : ''}
         </div>
-        ${footer([nadlerRef])}
+        ${footer(refsVolemia(result, [nadlerRef]))}
       `,
 
       tpe: () => {
@@ -115,7 +129,7 @@ export default function PrintReport({ data, result, tipo = 'cd34' }) {
             </div>
           </div>
           <div class="result-box highlight">
-            <p class="param"><strong>Volemia:</strong> ${result.volemia} L</p>
+            <p class="param"><strong>Volemia:</strong> ${result.volemia} L${volemiaNota(result)}</p>
             <p class="param"><strong>Volumen plasmático:</strong> ${result.volumenPlasmatico} mL</p>
             <p class="result-big">Intercambio/sesión: ${result.volumenIntercambio} mL</p>
             <p class="param"><strong>Total serie (${result.numSesiones} sesiones):</strong> ${result.volumenTotalSerie} mL</p>
@@ -127,7 +141,7 @@ export default function PrintReport({ data, result, tipo = 'cd34' }) {
               <strong>IgG:</strong> ${result.igGInicial} g/L → ${result.igGResidual} g/L (eliminación ${result.porcentajeEliminacionIgG}%)
             </div>
           ` : ''}
-          ${footer([nadlerRef])}
+          ${footer(refsVolemia(result, [nadlerRef]))}
         `;
       },
 
@@ -147,13 +161,13 @@ export default function PrintReport({ data, result, tipo = 'cd34' }) {
           </div>
         </div>
         <div class="result-box highlight">
-          <p class="param"><strong>Volemia:</strong> ${result.volemia} L</p>
+          <p class="param"><strong>Volemia:</strong> ${result.volemia} L${volemiaNota(result)}</p>
           <p class="param"><strong>FCR:</strong> ${result.fcr}</p>
           <p class="result-big">Volumen de intercambio: ${result.volumenIntercambio} mL</p>
           <p class="result-big">Unidades de CH: ${result.unidadesCH}</p>
           <p class="param"><strong>HbS final:</strong> ${result.hbSFinal}% &nbsp;|&nbsp; <strong>Hct post:</strong> ${result.hctFinal}%</p>
         </div>
-        ${footer(['Davis BA, et al. Guidelines on red cell transfusion in sickle cell disease. Br J Haematol. 2017;176(2):192-209.'])}
+        ${footer(refsVolemia(result, ['Davis BA, et al. Guidelines on red cell transfusion in sickle cell disease. Br J Haematol. 2017;176(2):192-209.']))}
       `,
 
       citrate: () => `

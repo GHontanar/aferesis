@@ -1,4 +1,4 @@
-import { calcularVolemiaNadler } from './nadler.js';
+import { calcularVolemia } from './volemia.js';
 
 /**
  * Calcula la fracción de células restantes (FCR)
@@ -57,6 +57,7 @@ export function estimarHctFinal(hctInicial, hctCH) {
  * @param {number} params.peso - Peso en kg
  * @param {number} params.altura - Altura en cm
  * @param {string} params.sexo - 'M' o 'F'
+ * @param {string} [params.franjaVolemia] - Grupo de edad para estimar volemia por peso (opcional; 'adulto' o id de FRANJAS_VOLEMIA_PEDIATRICA)
  * @param {number} params.hctInicial - Hematocrito inicial %
  * @param {number} params.hbSInicial - HbS inicial %
  * @param {number} params.hbSObjetivo - HbS objetivo %
@@ -69,6 +70,7 @@ export function calcularRCE(params) {
     peso,
     altura,
     sexo,
+    franjaVolemia,
     hctInicial,
     hbSInicial,
     hbSObjetivo,
@@ -76,7 +78,8 @@ export function calcularRCE(params) {
     volumenPorUnidad = 280
   } = params;
 
-  const volemia = calcularVolemiaNadler(peso, altura, sexo);
+  const infoVolemia = calcularVolemia({ peso, altura, sexo, franjaVolemia });
+  const volemia = infoVolemia.volemia;
   const fcr = calcularFCR(hbSObjetivo, hbSInicial);
   const volumenIntercambio = calcularVolumenIntercambioRCE(volemia, hctInicial, fcr);
   const unidadesCH = calcularUnidadesCH(volumenIntercambio, volumenPorUnidad);
@@ -84,6 +87,12 @@ export function calcularRCE(params) {
 
   return {
     volemia: volemia.toFixed(2),
+    metodoVolemia: infoVolemia.metodo,
+    ...(infoVolemia.metodo === 'pediatrico' && {
+      franjaVolemia: infoVolemia.franjaLabel,
+      volemiaMlKg: infoVolemia.mlKg,
+      volemiaRangoMlKg: infoVolemia.rangoMlKg
+    }),
     fcr: fcr.toFixed(3),
     volumenIntercambio: Math.round(volumenIntercambio),
     unidadesCH,

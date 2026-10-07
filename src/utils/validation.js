@@ -2,11 +2,18 @@
  * Validaciones para los campos de las calculadoras
  */
 
+import { ID_FRANJA_ADULTO } from './data/volemiaPediatrica.js';
+
 export const validations = {
   peso: {
     min: 1,
     max: 200,
     mensaje: 'El peso debe estar entre 1 y 200 kg'
+  },
+  pesoPediatrico: {
+    min: 0.5,
+    max: 200,
+    mensaje: 'El peso debe estar entre 0,5 y 200 kg'
   },
   altura: {
     min: 50,
@@ -31,6 +38,40 @@ export const validations = {
 };
 
 /**
+ * Indica si la franja de volemia seleccionada es pediátrica
+ * (estimación por peso, sin altura ni sexo)
+ */
+export function esFranjaPediatrica(franjaVolemia) {
+  return Boolean(franjaVolemia) && franjaVolemia !== ID_FRANJA_ADULTO;
+}
+
+/**
+ * Valida el peso y, en modo adulto, la altura y el sexo
+ * @param {Object} datos - Datos del formulario
+ * @param {string} campoPeso - Nombre del campo de peso
+ * @param {string} campoAltura - Nombre del campo de altura
+ * @param {string} etiqueta - Etiqueta para los mensajes ('paciente', 'donante'...)
+ * @returns {string[]} Errores encontrados
+ */
+function validarPesoYConstitucion(datos, campoPeso, campoAltura, etiqueta) {
+  const errores = [];
+  const pediatrico = esFranjaPediatrica(datos.franjaVolemia);
+  const reglasPeso = pediatrico ? validations.pesoPediatrico : validations.peso;
+
+  if (!datos[campoPeso] || !validarRango(datos[campoPeso], reglasPeso.min, reglasPeso.max)) {
+    errores.push(`Peso del ${etiqueta}: ${reglasPeso.mensaje}`);
+  }
+
+  if (!pediatrico) {
+    if (!datos[campoAltura] || !validarRango(datos[campoAltura], validations.altura.min, validations.altura.max)) {
+      errores.push(`Altura del ${etiqueta}: ${validations.altura.mensaje}`);
+    }
+  }
+
+  return errores;
+}
+
+/**
  * Valida si un valor numérico está dentro de un rango
  */
 export function validarRango(valor, min, max) {
@@ -43,17 +84,9 @@ export function validarRango(valor, min, max) {
  * Valida todos los campos requeridos para el cálculo de CD34
  */
 export function validarCamposCD34(datos) {
-  const errores = [];
+  const errores = validarPesoYConstitucion(datos, 'pesoDonante', 'alturaDonante', 'donante');
 
-  if (!datos.pesoDonante || !validarRango(datos.pesoDonante, validations.peso.min, validations.peso.max)) {
-    errores.push('Peso del donante: ' + validations.peso.mensaje);
-  }
-
-  if (!datos.alturaDonante || !validarRango(datos.alturaDonante, validations.altura.min, validations.altura.max)) {
-    errores.push('Altura del donante: ' + validations.altura.mensaje);
-  }
-
-  if (!datos.sexoDonante) {
+  if (!datos.sexoDonante && !esFranjaPediatrica(datos.franjaVolemia)) {
     errores.push('Debe seleccionar el sexo del donante');
   }
 
@@ -80,17 +113,9 @@ export function validarCamposCD34(datos) {
  * Valida todos los campos requeridos para el cálculo de CD3 (Linfoaféresis)
  */
 export function validarCamposCD3(datos) {
-  const errores = [];
+  const errores = validarPesoYConstitucion(datos, 'pesoDonante', 'alturaDonante', 'donante');
 
-  if (!datos.pesoDonante || !validarRango(datos.pesoDonante, validations.peso.min, validations.peso.max)) {
-    errores.push('Peso del donante: ' + validations.peso.mensaje);
-  }
-
-  if (!datos.alturaDonante || !validarRango(datos.alturaDonante, validations.altura.min, validations.altura.max)) {
-    errores.push('Altura del donante: ' + validations.altura.mensaje);
-  }
-
-  if (!datos.sexoDonante) {
+  if (!datos.sexoDonante && !esFranjaPediatrica(datos.franjaVolemia)) {
     errores.push('Debe seleccionar el sexo del donante');
   }
 
@@ -127,17 +152,9 @@ export function validarCamposCD3(datos) {
  * Valida campos para TPE
  */
 export function validarCamposTPE(datos) {
-  const errores = [];
+  const errores = validarPesoYConstitucion(datos, 'peso', 'altura', 'paciente');
 
-  if (!datos.peso || !validarRango(datos.peso, validations.peso.min, validations.peso.max)) {
-    errores.push('Peso del paciente: ' + validations.peso.mensaje);
-  }
-
-  if (!datos.altura || !validarRango(datos.altura, validations.altura.min, validations.altura.max)) {
-    errores.push('Altura del paciente: ' + validations.altura.mensaje);
-  }
-
-  if (!datos.sexo) {
+  if (!datos.sexo && !esFranjaPediatrica(datos.franjaVolemia)) {
     errores.push('Debe seleccionar el sexo del paciente');
   }
 
@@ -164,17 +181,9 @@ export function validarCamposTPE(datos) {
  * Valida campos para Eritrocitaféresis
  */
 export function validarCamposRCE(datos) {
-  const errores = [];
+  const errores = validarPesoYConstitucion(datos, 'peso', 'altura', 'paciente');
 
-  if (!datos.peso || !validarRango(datos.peso, validations.peso.min, validations.peso.max)) {
-    errores.push('Peso del paciente: ' + validations.peso.mensaje);
-  }
-
-  if (!datos.altura || !validarRango(datos.altura, validations.altura.min, validations.altura.max)) {
-    errores.push('Altura del paciente: ' + validations.altura.mensaje);
-  }
-
-  if (!datos.sexo) {
+  if (!datos.sexo && !esFranjaPediatrica(datos.franjaVolemia)) {
     errores.push('Debe seleccionar el sexo del paciente');
   }
 

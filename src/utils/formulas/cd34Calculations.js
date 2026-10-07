@@ -1,4 +1,4 @@
-import { calcularVolemiaNadler } from './nadler.js';
+import { calcularVolemia } from './volemia.js';
 
 /**
  * Calcula el número de volemias a procesar para alcanzar el objetivo de CD34
@@ -6,6 +6,7 @@ import { calcularVolemiaNadler } from './nadler.js';
  * @param {number} params.pesoDonante - Peso del donante en kg
  * @param {number} params.alturaDonante - Altura del donante en cm
  * @param {string} params.sexoDonante - Sexo del donante ('M' o 'F')
+ * @param {string} [params.franjaVolemia] - Grupo de edad del donante para estimar volemia por peso (opcional; 'adulto' o id de FRANJAS_VOLEMIA_PEDIATRICA)
  * @param {number} params.pesoReceptor - Peso del receptor en kg
  * @param {number} params.objetivoCD34 - Objetivo de recolección (millones CD34/kg receptor)
  * @param {number} params.concentracionCD34 - Concentración CD34 pre-aféresis (CD34/μL)
@@ -17,6 +18,7 @@ export function calcularVolemiasCD34(params) {
     pesoDonante,
     alturaDonante,
     sexoDonante,
+    franjaVolemia,
     pesoReceptor,
     objetivoCD34,
     concentracionCD34,
@@ -24,7 +26,8 @@ export function calcularVolemiasCD34(params) {
   } = params;
 
   // 1. Calcular volemia del donante
-  const volemiaDonante = calcularVolemiaNadler(pesoDonante, alturaDonante, sexoDonante);
+  const infoVolemia = calcularVolemia({ peso: pesoDonante, altura: alturaDonante, sexo: sexoDonante, franjaVolemia });
+  const volemiaDonante = infoVolemia.volemia;
 
   // 2. Calcular CD34 totales requeridas (en millones)
   const cd34Totales = objetivoCD34 * pesoReceptor;
@@ -39,6 +42,12 @@ export function calcularVolemiasCD34(params) {
 
   return {
     volemiaDonante: volemiaDonante.toFixed(2),
+    metodoVolemia: infoVolemia.metodo,
+    ...(infoVolemia.metodo === 'pediatrico' && {
+      franjaVolemia: infoVolemia.franjaLabel,
+      volemiaMlKg: infoVolemia.mlKg,
+      volemiaRangoMlKg: infoVolemia.rangoMlKg
+    }),
     cd34Totales: cd34Totales.toFixed(2),
     volumenProcesar: volumenProcesar.toFixed(2),
     volemias: volemias.toFixed(2),

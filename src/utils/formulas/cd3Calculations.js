@@ -1,4 +1,4 @@
-import { calcularVolemiaNadler } from './nadler.js';
+import { calcularVolemia } from './volemia.js';
 
 /**
  * Estima CD3/μL desde linfocitos totales y un porcentaje de CD3
@@ -16,6 +16,7 @@ export function estimarCD3DesdeLinfocitos(linfocitosPorUL, porcentajeCD3 = 70) {
  * @param {number} params.pesoDonante - Peso del donante en kg
  * @param {number} params.alturaDonante - Altura del donante en cm
  * @param {string} params.sexoDonante - Sexo del donante ('M' o 'F')
+ * @param {string} [params.franjaVolemia] - Grupo de edad del donante para estimar volemia por peso (opcional; 'adulto' o id de FRANJAS_VOLEMIA_PEDIATRICA)
  * @param {number} [params.pesoReceptor] - Peso del receptor en kg (requerido en modo 'porKg')
  * @param {number} params.objetivoCD3 - Objetivo de recolección (millones CD3/kg o millones totales según modo)
  * @param {number} params.concentracionCD3 - Concentración CD3 pre-aféresis (CD3/μL)
@@ -31,6 +32,7 @@ export function calcularVolemiasCD3(params) {
     pesoDonante,
     alturaDonante,
     sexoDonante,
+    franjaVolemia,
     pesoReceptor,
     objetivoCD3,
     concentracionCD3: concentracionCD3Directa,
@@ -42,7 +44,8 @@ export function calcularVolemiasCD3(params) {
   } = params;
 
   // 1. Calcular volemia del donante
-  const volemiaDonante = calcularVolemiaNadler(pesoDonante, alturaDonante, sexoDonante);
+  const infoVolemia = calcularVolemia({ peso: pesoDonante, altura: alturaDonante, sexo: sexoDonante, franjaVolemia });
+  const volemiaDonante = infoVolemia.volemia;
 
   // 2. Determinar concentración CD3 (directa o estimada)
   let concentracionCD3;
@@ -67,6 +70,12 @@ export function calcularVolemiasCD3(params) {
 
   return {
     volemiaDonante: volemiaDonante.toFixed(2),
+    metodoVolemia: infoVolemia.metodo,
+    ...(infoVolemia.metodo === 'pediatrico' && {
+      franjaVolemia: infoVolemia.franjaLabel,
+      volemiaMlKg: infoVolemia.mlKg,
+      volemiaRangoMlKg: infoVolemia.rangoMlKg
+    }),
     cd3Totales: cd3Totales.toFixed(2),
     volumenProcesar: volumenProcesar.toFixed(2),
     volemias: volemias.toFixed(2),

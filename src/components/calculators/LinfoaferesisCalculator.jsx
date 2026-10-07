@@ -25,6 +25,7 @@ import { validarCamposCD3, validations } from '../../utils/validation';
 import { CD3_ESTIMATION } from '../../utils/constants';
 import ResultDisplay from '../common/ResultDisplay';
 import PrintReport from '../common/PrintReport';
+import VolemiaGrupoEdadSelect, { descripcionFranjaVolemia } from '../common/VolemiaGrupoEdadSelect';
 
 export default function LinfoaferesisCalculator() {
   const { setResults, getResults } = useCalculator();
@@ -34,6 +35,7 @@ export default function LinfoaferesisCalculator() {
     pesoDonante: '',
     alturaDonante: '',
     sexoDonante: 'M',
+    franjaVolemia: 'adulto',
     pesoReceptor: '',
     objetivoCD3: '',
     concentracionCD3: '',
@@ -46,6 +48,8 @@ export default function LinfoaferesisCalculator() {
 
   const [errores, setErrores] = useState([]);
   const [advertenciaCD3, setAdvertenciaCD3] = useState(false);
+  const descripcionVolemia = descripcionFranjaVolemia(formData.franjaVolemia);
+  const volemiaPediatrica = Boolean(descripcionVolemia);
 
   const cd3Estimado = formData.fuenteCD3 === 'estimacion' && formData.linfocitosTotales
     ? estimarCD3DesdeLinfocitos(parseFloat(formData.linfocitosTotales), formData.porcentajeCD3)
@@ -87,6 +91,7 @@ export default function LinfoaferesisCalculator() {
       pesoDonante: parseFloat(formData.pesoDonante),
       alturaDonante: parseFloat(formData.alturaDonante),
       sexoDonante: formData.sexoDonante,
+      franjaVolemia: formData.franjaVolemia,
       pesoReceptor: formData.modoObjetivo === 'totalProducto' ? undefined : parseFloat(formData.pesoReceptor),
       objetivoCD3: parseFloat(formData.objetivoCD3),
       concentracionCD3: concentracionFinal,
@@ -105,6 +110,7 @@ export default function LinfoaferesisCalculator() {
       pesoDonante: '',
       alturaDonante: '',
       sexoDonante: 'M',
+      franjaVolemia: 'adulto',
       pesoReceptor: '',
       objetivoCD3: '',
       concentracionCD3: '',
@@ -140,7 +146,7 @@ export default function LinfoaferesisCalculator() {
             Cálculo de Linfoaféresis (CD3)
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Calcula el número de volemias a procesar basado en la fórmula de Nadler
+            Calcula el número de volemias a procesar según el grupo de edad del donante
           </Typography>
         </Box>
 
@@ -227,6 +233,8 @@ export default function LinfoaferesisCalculator() {
                 type="number"
                 value={formData.alturaDonante}
                 onChange={handleChange}
+                disabled={volemiaPediatrica}
+                helperText={volemiaPediatrica ? 'No aplica (volemia por peso)' : ''}
                 InputProps={{
                   endAdornment: (
                     <Tooltip title="Altura del donante en centímetros">
@@ -240,7 +248,7 @@ export default function LinfoaferesisCalculator() {
             </Grid>
 
             <Grid item xs={12} sm={4}>
-              <FormControl fullWidth size="small">
+              <FormControl fullWidth size="small" disabled={volemiaPediatrica}>
                 <InputLabel>Sexo</InputLabel>
                 <Select
                   name="sexoDonante"
@@ -252,6 +260,15 @@ export default function LinfoaferesisCalculator() {
                   <MenuItem value="F">Femenino</MenuItem>
                 </Select>
               </FormControl>
+            </Grid>
+
+            <Grid item xs={12} sm={4}>
+              <VolemiaGrupoEdadSelect
+                value={formData.franjaVolemia}
+                onChange={handleChange}
+                label="Grupo de edad del donante (volemia)"
+                helperText={descripcionVolemia || undefined}
+              />
             </Grid>
           </Grid>
 

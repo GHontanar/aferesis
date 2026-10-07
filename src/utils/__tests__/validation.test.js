@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   validarRango,
+  esFranjaPediatrica,
   validarCamposCD34,
   validarCamposCD3,
   validarCamposTPE,
@@ -148,6 +149,124 @@ describe('validarCamposRCE', () => {
   it('rechaza HbS objetivo >= HbS inicial', () => {
     const errores = validarCamposRCE({ ...datosValidos, hbSObjetivo: '90' });
     expect(errores.some(e => e.includes('menor'))).toBe(true);
+  });
+});
+
+describe('esFranjaPediatrica', () => {
+  it('adulto y vacío no son pediátricos', () => {
+    expect(esFranjaPediatrica('adulto')).toBe(false);
+    expect(esFranjaPediatrica(undefined)).toBe(false);
+    expect(esFranjaPediatrica('')).toBe(false);
+  });
+
+  it('franjas pediátricas se detectan correctamente', () => {
+    expect(esFranjaPediatrica('pretermino')).toBe(true);
+    expect(esFranjaPediatrica('termino')).toBe(true);
+    expect(esFranjaPediatrica('lactante')).toBe(true);
+    expect(esFranjaPediatrica('mayor2')).toBe(true);
+    expect(esFranjaPediatrica('obeso')).toBe(true);
+  });
+});
+
+describe('validaciones en modo pediátrico', () => {
+  it('TPE: acepta peso de 0,8 kg (prematuro) sin altura ni sexo', () => {
+    const datos = {
+      peso: '0.8',
+      altura: '',
+      sexo: '',
+      franjaVolemia: 'pretermino',
+      hematocrito: '45',
+      volemiasIntercambio: '1.0',
+      tipoReposicion: 'albumina5',
+      numSesiones: '2'
+    };
+    expect(validarCamposTPE(datos)).toHaveLength(0);
+  });
+
+  it('TPE: rechaza peso de 0,3 kg (fuera de rango pediátrico)', () => {
+    const datos = {
+      peso: '0.3',
+      franjaVolemia: 'pretermino',
+      hematocrito: '45',
+      volemiasIntercambio: '1.0',
+      tipoReposicion: 'albumina5',
+      numSesiones: '2'
+    };
+    const errores = validarCamposTPE(datos);
+    expect(errores.some(e => e.includes('0,5'))).toBe(true);
+  });
+
+  it('TPE: en modo adulto sigue exigiendo altura y sexo', () => {
+    const datos = {
+      peso: '70',
+      altura: '',
+      sexo: '',
+      franjaVolemia: 'adulto',
+      hematocrito: '40',
+      volemiasIntercambio: '1.0',
+      tipoReposicion: 'albumina5',
+      numSesiones: '5'
+    };
+    const errores = validarCamposTPE(datos);
+    expect(errores.some(e => e.includes('Altura'))).toBe(true);
+    expect(errores.some(e => e.includes('sexo'))).toBe(true);
+  });
+
+  it('RCE: acepta lactante de 6 kg sin altura ni sexo', () => {
+    const datos = {
+      peso: '6',
+      altura: '',
+      sexo: '',
+      franjaVolemia: 'lactante',
+      hctInicial: '30',
+      hbSInicial: '40',
+      hbSObjetivo: '20',
+      hctCH: '60'
+    };
+    expect(validarCamposRCE(datos)).toHaveLength(0);
+  });
+
+  it('CD34: acepta donante pediátrico de 3 kg sin altura ni sexo', () => {
+    const datos = {
+      pesoDonante: '3',
+      alturaDonante: '',
+      sexoDonante: '',
+      franjaVolemia: 'termino',
+      pesoReceptor: '70',
+      objetivoCD34: '5',
+      concentracionCD34: '20',
+      eficiencia: '0.4'
+    };
+    expect(validarCamposCD34(datos)).toHaveLength(0);
+  });
+
+  it('CD3: acepta donante pediátrico de 15 kg sin altura ni sexo', () => {
+    const datos = {
+      pesoDonante: '15',
+      alturaDonante: '',
+      sexoDonante: '',
+      franjaVolemia: 'mayor2',
+      pesoReceptor: '70',
+      objetivoCD3: '2',
+      concentracionCD3: '1000',
+      eficiencia: '0.4',
+      modoObjetivo: 'porKg',
+      fuenteCD3: 'directo'
+    };
+    expect(validarCamposCD3(datos)).toHaveLength(0);
+  });
+
+  it('CD34: en modo adulto acepta peso mínimo 1 kg pero rechaza 0,8 kg', () => {
+    const base = {
+      alturaDonante: '170',
+      sexoDonante: 'M',
+      pesoReceptor: '70',
+      objetivoCD34: '5',
+      concentracionCD34: '20',
+      eficiencia: '0.4'
+    };
+    expect(validarCamposCD34({ ...base, pesoDonante: '1' })).toHaveLength(0);
+    expect(validarCamposCD34({ ...base, pesoDonante: '0.8' }).length).toBeGreaterThan(0);
   });
 });
 

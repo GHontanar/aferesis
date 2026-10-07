@@ -90,4 +90,39 @@ describe('calcularRCE', () => {
     const rPesado = calcularRCE({ ...paramsBase, peso: 100 });
     expect(rPesado.volumenIntercambio).toBeGreaterThan(rLigero.volumenIntercambio);
   });
+
+  it('modo adulto no añade campos pediátricos', () => {
+    const r = calcularRCE(paramsBase);
+    expect(r.metodoVolemia).toBe('nadler');
+    expect(r.franjaVolemia).toBeUndefined();
+  });
+
+  it('franja pediátrica estima la volemia por peso sin usar altura ni sexo', () => {
+    const r = calcularRCE({
+      ...paramsBase,
+      peso: 12,
+      altura: undefined,
+      sexo: undefined,
+      franjaVolemia: 'mayor2'
+    });
+    expect(r.metodoVolemia).toBe('pediatrico');
+    expect(parseFloat(r.volemia)).toBeCloseTo(12 * 70 / 1000, 2); // 0.84 L
+    expect(r.franjaVolemia).toBe('Niño mayor de 2 años');
+    expect(r.volemiaMlKg).toBe(70);
+    expect(r.volemiaRangoMlKg).toBe('70');
+  });
+
+  it('prematuro de 1,5 kg usa la franja pretérmino (95 mL/kg de valor medio)', () => {
+    const r = calcularRCE({
+      peso: 1.5,
+      franjaVolemia: 'pretermino',
+      hctInicial: 35,
+      hbSInicial: 20,
+      hbSObjetivo: 10,
+      hctCH: 60
+    });
+    expect(r.metodoVolemia).toBe('pediatrico');
+    expect(parseFloat(r.volemia)).toBeCloseTo(0.14, 2); // 1.5 kg × 95 mL/kg → 0.1425 L → 0.14
+    expect(r.volemiaRangoMlKg).toBe('90–100');
+  });
 });

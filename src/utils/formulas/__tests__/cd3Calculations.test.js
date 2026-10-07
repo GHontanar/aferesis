@@ -101,4 +101,25 @@ describe('calcularVolemiasCD3', () => {
     const resultadoAlta = calcularVolemiasCD3({ ...paramsBase, eficiencia: 0.6 });
     expect(parseFloat(resultadoBaja.volemias)).toBeGreaterThan(parseFloat(resultadoAlta.volemias));
   });
+
+  it('modo adulto no añade campos pediátricos', () => {
+    const resultado = calcularVolemiasCD3(paramsBase);
+    expect(resultado.metodoVolemia).toBe('nadler');
+    expect(resultado.franjaVolemia).toBeUndefined();
+  });
+
+  it('donante pediátrico: volemia estimada por peso sin usar altura ni sexo', () => {
+    const resultado = calcularVolemiasCD3({
+      ...paramsBase,
+      pesoDonante: 10,
+      alturaDonante: undefined,
+      sexoDonante: undefined,
+      franjaVolemia: 'lactante'
+    });
+    expect(resultado.metodoVolemia).toBe('pediatrico');
+    expect(parseFloat(resultado.volemiaDonante)).toBeCloseTo(10 * 75 / 1000, 2); // 0.75 L
+    expect(resultado.franjaVolemia).toBe('Lactante (3 meses a 2 años)');
+    expect(resultado.volemiaMlKg).toBe(75);
+    expect(resultado.volemiaRangoMlKg).toBe('70–80');
+  });
 });

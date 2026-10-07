@@ -23,6 +23,7 @@ import { validarCamposTPE } from '../../utils/validation';
 import { TPE } from '../../utils/constants';
 import ResultDisplay from '../common/ResultDisplay';
 import PrintReport from '../common/PrintReport';
+import VolemiaGrupoEdadSelect, { descripcionFranjaVolemia } from '../common/VolemiaGrupoEdadSelect';
 
 export default function TPECalculator() {
   const { setResults, getResults } = useCalculator();
@@ -32,6 +33,7 @@ export default function TPECalculator() {
     peso: '',
     altura: '',
     sexo: 'M',
+    franjaVolemia: 'adulto',
     hematocrito: '',
     volemiasIntercambio: TPE.DEFAULT_VOLEMIAS.toString(),
     tipoReposicion: 'albumina5',
@@ -41,6 +43,8 @@ export default function TPECalculator() {
   });
 
   const [errores, setErrores] = useState([]);
+  const descripcionVolemia = descripcionFranjaVolemia(formData.franjaVolemia);
+  const volemiaPediatrica = Boolean(descripcionVolemia);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -60,6 +64,7 @@ export default function TPECalculator() {
       peso: parseFloat(formData.peso),
       altura: parseFloat(formData.altura),
       sexo: formData.sexo,
+      franjaVolemia: formData.franjaVolemia,
       hematocrito: parseFloat(formData.hematocrito),
       volemiasIntercambio: parseFloat(formData.volemiasIntercambio),
       tipoReposicion: formData.tipoReposicion,
@@ -76,6 +81,7 @@ export default function TPECalculator() {
       peso: '',
       altura: '',
       sexo: 'M',
+      franjaVolemia: 'adulto',
       hematocrito: '',
       volemiasIntercambio: TPE.DEFAULT_VOLEMIAS.toString(),
       tipoReposicion: 'albumina5',
@@ -134,17 +140,26 @@ export default function TPECalculator() {
             </Grid>
             <Grid item xs={12} sm={4}>
               <TextField name="altura" label="Altura (cm)" type="number" value={formData.altura} onChange={handleChange}
+                disabled={volemiaPediatrica}
+                helperText={volemiaPediatrica ? 'No aplica (volemia por peso)' : ''}
                 InputProps={{ endAdornment: <Tooltip title="Altura en centímetros"><IconButton size="small"><InfoIcon fontSize="small" /></IconButton></Tooltip> }}
               />
             </Grid>
             <Grid item xs={12} sm={4}>
-              <FormControl fullWidth size="small">
+              <FormControl fullWidth size="small" disabled={volemiaPediatrica}>
                 <InputLabel>Sexo</InputLabel>
                 <Select name="sexo" value={formData.sexo} onChange={handleChange} label="Sexo">
                   <MenuItem value="M">Masculino</MenuItem>
                   <MenuItem value="F">Femenino</MenuItem>
                 </Select>
               </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <VolemiaGrupoEdadSelect
+                value={formData.franjaVolemia}
+                onChange={handleChange}
+                helperText={descripcionVolemia || undefined}
+              />
             </Grid>
             <Grid item xs={12} sm={4}>
               <TextField name="hematocrito" label="Hematocrito (%)" type="number" value={formData.hematocrito} onChange={handleChange}

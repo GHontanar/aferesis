@@ -12,9 +12,22 @@ import {
   Chip
 } from '@mui/material';
 import { FUENTE_LIMITE_DMSO } from '../../utils/formulas/cryopreservationCalculations';
+import { NOTA_FUENTE_VOLEMIA } from '../../utils/data/volemiaPediatrica.js';
 
 export default function ResultDisplay({ result, tipo = 'cd34', formData }) {
   if (!result) return null;
+
+  const notaVolemiaPediatrica = () => {
+    if (result.metodoVolemia !== 'pediatrico') return null;
+    return (
+      <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
+        Estimación por peso: <strong>{result.volemiaMlKg} mL/kg</strong> (rango {result.volemiaRangoMlKg}) — {result.franjaVolemia}.
+        <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
+          Fuente: {NOTA_FUENTE_VOLEMIA}
+        </Typography>
+      </Typography>
+    );
+  };
 
   const renderCD34Result = () => (
     <Box>
@@ -22,6 +35,7 @@ export default function ResultDisplay({ result, tipo = 'cd34', formData }) {
         <Typography variant="body1" gutterBottom sx={{ color: 'text.secondary' }}>
           Volemia del donante: <strong style={{ color: '#6D28D9' }}>{result.volemiaDonante} L</strong>
         </Typography>
+        {notaVolemiaPediatrica()}
         <Typography variant="body1" gutterBottom sx={{ color: 'text.secondary' }}>
           CD34 totales requeridas: <strong style={{ color: '#6D28D9' }}>{result.cd34Totales} millones</strong>
         </Typography>
@@ -63,6 +77,7 @@ export default function ResultDisplay({ result, tipo = 'cd34', formData }) {
         <Typography variant="body1" gutterBottom sx={{ color: 'text.secondary' }}>
           Volemia del donante: <strong style={{ color: '#6D28D9' }}>{result.volemiaDonante} L</strong>
         </Typography>
+        {notaVolemiaPediatrica()}
         <Typography variant="body1" gutterBottom sx={{ color: 'text.secondary' }}>
           CD3 totales requeridas: <strong style={{ color: '#6D28D9' }}>{result.cd3Totales} millones</strong>
           {result.modoObjetivo === 'totalProducto' && (
@@ -125,6 +140,7 @@ export default function ResultDisplay({ result, tipo = 'cd34', formData }) {
           <Typography variant="body1" gutterBottom sx={{ color: 'text.secondary' }}>
             Volemia: <strong style={{ color: '#6D28D9' }}>{result.volemia} L</strong>
           </Typography>
+          {notaVolemiaPediatrica()}
           <Typography variant="body1" gutterBottom sx={{ color: 'text.secondary' }}>
             Volumen plasmático: <strong style={{ color: '#6D28D9' }}>{result.volumenPlasmatico} mL</strong>
           </Typography>
@@ -186,6 +202,7 @@ export default function ResultDisplay({ result, tipo = 'cd34', formData }) {
         <Typography variant="body1" gutterBottom sx={{ color: 'text.secondary' }}>
           Volemia: <strong style={{ color: '#6D28D9' }}>{result.volemia} L</strong>
         </Typography>
+        {notaVolemiaPediatrica()}
         <Typography variant="body1" gutterBottom sx={{ color: 'text.secondary' }}>
           FCR (Fracción de Células Restantes): <strong style={{ color: '#6D28D9' }}>{result.fcr}</strong>
         </Typography>

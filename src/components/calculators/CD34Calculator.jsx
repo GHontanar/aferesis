@@ -21,6 +21,7 @@ import { calcularVolemiasCD34 } from '../../utils/formulas/cd34Calculations';
 import { validarCamposCD34, validations } from '../../utils/validation';
 import ResultDisplay from '../common/ResultDisplay';
 import PrintReport from '../common/PrintReport';
+import VolemiaGrupoEdadSelect, { descripcionFranjaVolemia } from '../common/VolemiaGrupoEdadSelect';
 
 export default function CD34Calculator() {
   const { setResults, getResults } = useCalculator();
@@ -30,6 +31,7 @@ export default function CD34Calculator() {
     pesoDonante: '',
     alturaDonante: '',
     sexoDonante: 'M',
+    franjaVolemia: 'adulto',
     pesoReceptor: '',
     objetivoCD34: '',
     concentracionCD34: '',
@@ -38,6 +40,8 @@ export default function CD34Calculator() {
 
   const [errores, setErrores] = useState([]);
   const [advertenciaCD34, setAdvertenciaCD34] = useState(false);
+  const descripcionVolemia = descripcionFranjaVolemia(formData.franjaVolemia);
+  const volemiaPediatrica = Boolean(descripcionVolemia);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -70,6 +74,7 @@ export default function CD34Calculator() {
       pesoDonante: parseFloat(formData.pesoDonante),
       alturaDonante: parseFloat(formData.alturaDonante),
       sexoDonante: formData.sexoDonante,
+      franjaVolemia: formData.franjaVolemia,
       pesoReceptor: parseFloat(formData.pesoReceptor),
       objetivoCD34: parseFloat(formData.objetivoCD34),
       concentracionCD34: parseFloat(formData.concentracionCD34),
@@ -84,6 +89,7 @@ export default function CD34Calculator() {
       pesoDonante: '',
       alturaDonante: '',
       sexoDonante: 'M',
+      franjaVolemia: 'adulto',
       pesoReceptor: '',
       objetivoCD34: '',
       concentracionCD34: '',
@@ -115,7 +121,7 @@ export default function CD34Calculator() {
             Cálculo de Volemias para CD34
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Calcula el número de volemias a procesar basado en la fórmula de Nadler
+            Calcula el número de volemias a procesar según el grupo de edad del donante
           </Typography>
         </Box>
 
@@ -174,6 +180,8 @@ export default function CD34Calculator() {
                 type="number"
                 value={formData.alturaDonante}
                 onChange={handleChange}
+                disabled={volemiaPediatrica}
+                helperText={volemiaPediatrica ? 'No aplica (volemia por peso)' : ''}
                 InputProps={{
                   endAdornment: (
                     <Tooltip title="Altura del donante en centímetros">
@@ -187,7 +195,7 @@ export default function CD34Calculator() {
             </Grid>
 
             <Grid item xs={12} sm={4}>
-              <FormControl fullWidth size="small">
+              <FormControl fullWidth size="small" disabled={volemiaPediatrica}>
                 <InputLabel>Sexo</InputLabel>
                 <Select
                   name="sexoDonante"
@@ -199,6 +207,15 @@ export default function CD34Calculator() {
                   <MenuItem value="F">Femenino</MenuItem>
                 </Select>
               </FormControl>
+            </Grid>
+
+            <Grid item xs={12} sm={4}>
+              <VolemiaGrupoEdadSelect
+                value={formData.franjaVolemia}
+                onChange={handleChange}
+                label="Grupo de edad del donante (volemia)"
+                helperText={descripcionVolemia || undefined}
+              />
             </Grid>
           </Grid>
 

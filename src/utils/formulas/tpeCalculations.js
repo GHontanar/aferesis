@@ -1,4 +1,4 @@
-import { calcularVolemiaNadler } from './nadler.js';
+import { calcularVolemia } from './volemia.js';
 
 /**
  * Calcula el volumen plasmático a partir de la volemia y el hematocrito
@@ -72,6 +72,7 @@ export function calcularReposicion(volumenIntercambio, tipoReposicion, porcentaj
  * @param {number} params.peso - Peso del paciente en kg
  * @param {number} params.altura - Altura en cm
  * @param {string} params.sexo - 'M' o 'F'
+ * @param {string} [params.franjaVolemia] - Grupo de edad para estimar volemia por peso (opcional; 'adulto' o id de FRANJAS_VOLEMIA_PEDIATRICA)
  * @param {number} params.hematocrito - Hematocrito en %
  * @param {number} params.volemiasIntercambio - Nº de volemias plasmáticas a intercambiar por sesión
  * @param {string} params.tipoReposicion - Tipo de líquido de reposición
@@ -85,6 +86,7 @@ export function calcularTPE(params) {
     peso,
     altura,
     sexo,
+    franjaVolemia,
     hematocrito,
     volemiasIntercambio,
     tipoReposicion,
@@ -93,13 +95,20 @@ export function calcularTPE(params) {
     igGInicial
   } = params;
 
-  const volemia = calcularVolemiaNadler(peso, altura, sexo);
+  const infoVolemia = calcularVolemia({ peso, altura, sexo, franjaVolemia });
+  const volemia = infoVolemia.volemia;
   const volumenPlasmatico = calcularVolumenPlasmatico(volemia, hematocrito);
   const volumenIntercambio = volumenPlasmatico * volemiasIntercambio * 1000; // en mL
   const reposicion = calcularReposicion(Math.round(volumenIntercambio), tipoReposicion, porcentajeAlbumina);
 
   const resultado = {
     volemia: volemia.toFixed(2),
+    metodoVolemia: infoVolemia.metodo,
+    ...(infoVolemia.metodo === 'pediatrico' && {
+      franjaVolemia: infoVolemia.franjaLabel,
+      volemiaMlKg: infoVolemia.mlKg,
+      volemiaRangoMlKg: infoVolemia.rangoMlKg
+    }),
     volumenPlasmatico: (volumenPlasmatico * 1000).toFixed(0), // en mL
     volumenIntercambio: Math.round(volumenIntercambio),
     reposicion,

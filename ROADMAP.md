@@ -321,6 +321,10 @@ Del brainstorm de nuevas funcionalidades, ordenado por utilidad/esfuerzo:
    procedimiento.
 8. Planificador de desensibilizaciones. Alcance y contenido clínico
    pendientes de definir con el especialista.
+9. Validar bibliográficamente la tabla de volemia pediátrica por peso
+   (`src/utils/data/volemiaPediatrica.js`), añadida a petición de un usuario
+   para menores de 2 años (y resto de franjas pediátricas). La fuente aún no
+   está citada: pendiente de revisión del especialista antes de publicar.
 
 ---
 
