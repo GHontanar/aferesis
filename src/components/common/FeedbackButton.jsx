@@ -100,7 +100,16 @@ export default function FeedbackButton() {
         ) : (
           <Box component="form" onSubmit={enviar} noValidate>
             <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <Alert severity="warning">
+              <Alert
+                severity="warning"
+                sx={{
+                  borderLeft: 'none',
+                  py: 0.25,
+                  fontSize: '0.8125rem',
+                  alignItems: 'center',
+                  '& .MuiAlert-icon': { fontSize: 18, py: 0.5 },
+                }}
+              >
                 No incluyas datos de pacientes ni ninguna información que permita identificarlos.
               </Alert>
 
