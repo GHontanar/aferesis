@@ -1,9 +1,13 @@
 // Información de la aplicación
 export const APP_VERSION = '2.0.0';
-export const LAST_UPDATE = 'Marzo 2026';
+export const LAST_UPDATE = 'Noviembre 2026';
 export const APP_NAME = 'Calculadora de Aféresis';
 export const APP_SHORT_NAME = 'CalcAféresis';
 export const APP_DESCRIPTION = 'Herramienta de cálculo para procedimientos de aféresis';
+
+// Titular del sitio y contacto (LSSI art. 10, RGPD art. 13)
+export const OWNER_NAME = 'Guzmán López de Hontanar Torres';
+export const CONTACT_EMAIL = 'privacidad@ghontanar.com';
 
 // Rutas legales
 export const ROUTES = {
@@ -99,7 +103,7 @@ export const META = {
 };
 
 // Fecha de la política de privacidad (independiente de LAST_UPDATE)
-export const PRIVACY_LAST_UPDATE = 'Octubre 2026';
+export const PRIVACY_LAST_UPDATE = 'Noviembre 2026';
 
 // Formulario de feedback (compartido entre cliente y Pages Function)
 export const FEEDBACK = {
@@ -119,7 +123,7 @@ export const FEEDBACK = {
   EMAIL_MAX: 254,
   PAGINA_MAX: 200,
   FROM: 'Calculadora de Aféresis <avisos@ghontanar.com>',
-  TO: 'privacidad@ghontanar.com',
+  TO: CONTACT_EMAIL,
   RATE_LIMIT_MAX: 5,
   RATE_LIMIT_WINDOW_MS: 10 * 60 * 1000,
 };

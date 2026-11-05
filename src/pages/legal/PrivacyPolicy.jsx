@@ -1,5 +1,5 @@
 import { Typography, Box } from '@mui/material';
-import { PRIVACY_LAST_UPDATE } from '../../utils/constants';
+import { PRIVACY_LAST_UPDATE, OWNER_NAME, CONTACT_EMAIL } from '../../utils/constants';
 
 export default function PrivacyPolicy() {
   return (
@@ -7,6 +7,16 @@ export default function PrivacyPolicy() {
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
         Última actualización: {PRIVACY_LAST_UPDATE}
       </Typography>
+
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="subtitle1" gutterBottom fontWeight={600}>
+          Responsable del tratamiento
+        </Typography>
+        <Typography component="ul" variant="body2" sx={{ pl: 2 }}>
+          <li><strong>Responsable:</strong> {OWNER_NAME}</li>
+          <li><strong>Contacto:</strong> {CONTACT_EMAIL}</li>
+        </Typography>
+      </Box>
 
       <Box sx={{ mb: 3 }}>
         <Typography variant="subtitle1" gutterBottom fontWeight={600}>
@@ -36,8 +46,8 @@ export default function PrivacyPolicy() {
             <strong>No incluya datos de pacientes</strong> ni información que permita identificarlos
           </li>
           <li>
-            Puede solicitar el acceso o la eliminación de sus mensajes escribiendo a
-            privacidad@ghontanar.com
+            Puede solicitar el acceso o la eliminación de sus mensajes escribiendo a{' '}
+            {CONTACT_EMAIL}
           </li>
         </Typography>
       </Box>

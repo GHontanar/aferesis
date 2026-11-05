@@ -1,5 +1,5 @@
 import { Typography, Box } from '@mui/material';
-import { LAST_UPDATE } from '../../utils/constants';
+import { LAST_UPDATE, OWNER_NAME, CONTACT_EMAIL } from '../../utils/constants';
 
 export default function TermsOfUse() {
   return (
@@ -60,13 +60,23 @@ export default function TermsOfUse() {
         </Typography>
       </Box>
 
-      <Box>
+      <Box sx={{ mb: 3 }}>
         <Typography variant="subtitle1" gutterBottom fontWeight={600}>
           Modificaciones
         </Typography>
         <Typography variant="body2">
           Se reserva el derecho de modificar estos términos o discontinuar la aplicación en
           cualquier momento sin previo aviso.
+        </Typography>
+      </Box>
+
+      <Box>
+        <Typography variant="subtitle1" gutterBottom fontWeight={600}>
+          Titular y contacto
+        </Typography>
+        <Typography component="ul" variant="body2" sx={{ pl: 2 }}>
+          <li><strong>Titular:</strong> {OWNER_NAME}</li>
+          <li><strong>Contacto:</strong> {CONTACT_EMAIL}</li>
         </Typography>
       </Box>
     </Box>
