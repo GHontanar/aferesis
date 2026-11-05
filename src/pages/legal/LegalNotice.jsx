@@ -1,5 +1,5 @@
 import { Typography, Box } from '@mui/material';
-import { APP_NAME } from '../../utils/constants';
+import { APP_NAME, OWNER_NAME, CONTACT_EMAIL } from '../../utils/constants';
 
 export default function LegalNotice() {
   return (
@@ -9,6 +9,8 @@ export default function LegalNotice() {
           Identificación
         </Typography>
         <Typography component="ul" variant="body2" sx={{ pl: 2 }}>
+          <li><strong>Titular:</strong> {OWNER_NAME}</li>
+          <li><strong>Contacto:</strong> {CONTACT_EMAIL}</li>
           <li><strong>Aplicación:</strong> {APP_NAME}</li>
           <li><strong>Tipo:</strong> Proyecto personal sin ánimo de lucro</li>
           <li><strong>Hosting:</strong> Cloudflare Pages</li>
@@ -41,7 +43,7 @@ export default function LegalNotice() {
           Propiedad intelectual
         </Typography>
         <Typography variant="body2">
-          © 2026 {APP_NAME}. Todos los derechos reservados.
+          © 2026 {OWNER_NAME}. Todos los derechos reservados.
         </Typography>
       </Box>
     </Box>
